@@ -2,6 +2,8 @@ name = "road-to-scratch"
 main = "src/index.js"
 compatibility_date = "2026-09-01"
 compatibility_flags = ["nodejs_compat"]
+# Keep variables added in the Cloudflare dashboard when a GitHub push redeploys the Worker.
+keep_vars = true
 
 # Builds the dashboard (source/template.html + program.json + REST shim) before every deploy/dev.
 [build]
