@@ -1,8 +1,8 @@
 // Cron jobs (spec section 8). Cron strings must match wrangler.toml exactly.
 import { dayPlan, morningAlerts, morningFlex, morningNoteText } from "./program.js";
 import { addDays, mondayOf, weekOf } from "./dates.js";
-import { getDoc, putDoc, listDocs, getSetting, setSetting, saveConvo } from "./db.js";
-import { QUESTIONS, newState, questionMessage } from "./checkin.js";
+import { getDoc, putDoc, listDocs, getSetting, setSetting } from "./db.js";
+import { QUESTIONS, questionMessage } from "./checkin.js";
 import { guardedPush, dashboardUrl, rangeStats, buildSummary } from "./context.js";
 import { weeklyReview, toOverrides } from "./claude.js";
 
@@ -54,9 +54,9 @@ export async function morningJob(ctx) {
 export async function eveningJob(ctx) {
   const today = ctx.today();
   if (await getDoc(ctx.db, "daily", today)) return false; // already logged (dashboard or earlier check-in)
-  const owner = ctx.env.OWNER_LINE_USER_ID;
-  if (!owner) return false;
-  await saveConvo(ctx.db, owner, newState(today), ctx.now().toISOString());
+  if (!ctx.env.OWNER_LINE_USER_ID) return false;
+  // No convo row is written here: tapping a button starts the check-in, so a round entry
+  // that happens to be in progress at 21:30 is not wiped.
   return guardedPush(ctx, [questionMessage(QUESTIONS[0], "Check-in time. 9 quick taps.\n")]);
 }
 

@@ -4,6 +4,9 @@ import {
   QUESTIONS, parsePostback, newState, nextQuestion, applyAnswer, awaitingNote, questionMessage, toDailyRow, summaryText,
 } from "./checkin.js";
 import { parseRound, parseBody, HELP_TEXT } from "./commands.js";
+import {
+  newScoreState, nextScoreQuestion, applyScoreAnswer, parseScorePostback, scoreQuestionMessage, toRoundDoc, roundSummary,
+} from "./score.js";
 import { fullPlanText, weekPlanText, dayPlan } from "./program.js";
 import { checkinDate, weekOf } from "./dates.js";
 import { loadConvo, saveConvo, clearConvo, putDoc, rememberOrigin } from "./db.js";
@@ -51,18 +54,47 @@ export async function handleEvent(event, ctx) {
   if (text != null) return onText(text, userId, ctx, reply);
 }
 
+/** The user's unfinished check-in or score entry (null if none, or if it went stale). */
 async function currentState(ctx, userId) {
   const s = await loadConvo(ctx.db, userId);
-  if (!s || s.flow !== "checkin") return null;
+  if (!s || (s.flow !== "checkin" && s.flow !== "score")) return null;
   if (s.updated && ctx.now() - Date.parse(s.updated) > STALE_MS) return null;
   return s;
 }
 
 async function onPostback(data, userId, ctx, reply) {
+  if (String(data).startsWith("sc:")) {
+    const ans = parseScorePostback(data);
+    if (!ans) return;
+    const state = await currentState(ctx, userId);
+    if (!state || state.flow !== "score") return reply('That round entry has finished. Type "score" to log a new round.');
+    return scoreAnswer(state, ans.field, ans.raw, userId, ctx, reply);
+  }
   const ans = parsePostback(data);
   if (!ans) return;
-  const state = (await currentState(ctx, userId)) || newState(checkinDate(ctx.now(), ctx.tz));
+  const current = await currentState(ctx, userId);
+  const state = current && current.flow === "checkin" ? current : newState(checkinDate(ctx.now(), ctx.tz));
   return answer(state, ans.field, ans.value, userId, ctx, reply);
+}
+
+async function scoreAnswer(state, field, raw, userId, ctx, reply) {
+  const nowIso = ctx.now().toISOString();
+  const r = applyScoreAnswer(state, field, raw);
+  if (r.error) return reply(scoreQuestionMessage(r.next, `${r.error} (Type "cancel" to stop.)\n`));
+  if (!r.done) {
+    await saveConvo(ctx.db, userId, r.state, nowIso);
+    return reply(scoreQuestionMessage(r.next));
+  }
+  const doc = toRoundDoc(r.state.draft, nowIso);
+  await putDoc(ctx.db, "rounds", crypto.randomUUID(), doc);
+  await clearConvo(ctx.db, userId);
+  return reply(roundSummary(doc));
+}
+
+async function startScore(ctx, userId, reply) {
+  const state = newScoreState(ctx.today());
+  await saveConvo(ctx.db, userId, state, ctx.now().toISOString());
+  return reply(scoreQuestionMessage(nextScoreQuestion(state), 'Log a round. Type "cancel" to stop at any time.\n'));
 }
 
 async function answer(state, field, value, userId, ctx, reply) {
@@ -89,10 +121,21 @@ async function startCheckin(ctx, userId, reply) {
 async function onText(text, userId, ctx, reply) {
   const lower = text.toLowerCase();
   const cmd = lower.split(/\s+/)[0];
-  const COMMANDS = ["today", "plan", "help", "dashboard", "checkin", "check-in", "ci", "round", "body", "hello", "quota"];
+  const COMMANDS = ["today", "plan", "help", "dashboard", "checkin", "check-in", "ci", "score", "round", "body", "hello", "quota", "cancel"];
+  const state = await currentState(ctx, userId);
+
+  if (cmd === "cancel") {
+    if (!state) return reply("Nothing to cancel.");
+    await clearConvo(ctx.db, userId);
+    return reply(state.flow === "score" ? "Round entry cancelled. Nothing saved." : "Check-in cancelled. Nothing saved.");
+  }
+  // During a score entry every typed message is an answer (a course could be called "Plan").
+  if (state && state.flow === "score") {
+    const q = nextScoreQuestion(state);
+    return scoreAnswer(state, q.field, text, userId, ctx, reply);
+  }
 
   if (!COMMANDS.includes(cmd)) {
-    const state = await currentState(ctx, userId);
     if (awaitingNote(state)) return answer(state, "note", text, userId, ctx, reply);
     if (state) return reply(questionMessage(nextQuestion(state), "Tap a button to answer:\n"));
     return reply(`Sorry, I didn't get that.\n\n${HELP_TEXT}`);
@@ -110,6 +153,7 @@ async function onText(text, userId, ctx, reply) {
       return reply(url ? `Dashboard: ${url}` : "Dashboard link not known yet. Set PUBLIC_URL in wrangler.toml.");
     }
     case "checkin": case "check-in": case "ci": return startCheckin(ctx, userId, reply);
+    case "score": return startScore(ctx, userId, reply);
     case "quota": {
       const q = await ctx.line.quota();
       return reply(`Push messages this month: ${q.used}${q.limit != null ? ` of ${q.limit}` : ""} (${q.type}). Replies are free.`);
@@ -120,13 +164,7 @@ async function onText(text, userId, ctx, reply) {
       const nowIso = ctx.now().toISOString();
       const doc = { ...r.round, date: today, created: nowIso };
       await putDoc(ctx.db, "rounds", crypto.randomUUID(), doc);
-      const total = doc.front + doc.back;
-      const bits = [`Round saved for ${today}: ${total} (${doc.front}/${doc.back})`];
-      if (doc.putts != null) bits.push(`${doc.putts} putts`);
-      if (doc.penalties != null) bits.push(`${doc.penalties} pen`);
-      if (doc.doubles != null) bits.push(`${doc.doubles} dbl`);
-      if (doc.money != null) bits.push(`money ${doc.money.toLocaleString("en-US")}`);
-      return reply(bits.join(" · "));
+      return reply(roundSummary(doc));
     }
     case "body": {
       const b = parseBody(text);

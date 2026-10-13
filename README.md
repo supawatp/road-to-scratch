@@ -43,7 +43,19 @@ Collections: `daily` (id = date), `rounds`, `tests`, `body` (UUID ids), `coach` 
 
 ## LINE commands
 
-`today`, `plan`, `checkin`, `round 42 45 putts 33 pen 1 dbl 2 short 4 long 0 money -5000`, `body 80 82` (optional `uric 7.1`, `flare`), `dashboard`, `quota`, `help`. Before `OWNER_LINE_USER_ID` is set, the bot only answers `hello`, with the sender's user ID.
+| Command | What it does |
+|---|---|
+| `today` | Full plan for today with every video link |
+| `plan` | This week's focus, targets and daily sessions |
+| `checkin` | Tonight's 9-question check-in (buttons) |
+| `score` | Log a round one question at a time: day, course, front 9, back 9, putts, fairways, GIR, penalties, doubles, approaches short/long, money, mind, comment. Type numbers or tap buttons; optional questions have Skip. |
+| `body 80 82` | Weight (kg) and waist (cm); optional `uric 7.1`, `flare` |
+| `dashboard` | Link to the tracker |
+| `quota` | Push messages used this month |
+| `cancel` | Stop a check-in or round entry without saving |
+| `help` | Command list |
+
+Shortcut, not listed in `help`: `round 42 45 putts 33 pen 1 dbl 2 short 4 long 0 money -5000` logs a whole round in one line. Before `OWNER_LINE_USER_ID` is set, the bot only answers `hello`, with the sender's user ID.
 
 ## Secrets
 
