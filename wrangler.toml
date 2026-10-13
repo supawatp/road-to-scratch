@@ -28,7 +28,7 @@ PUBLIC_URL = ""
 binding = "DB"
 database_name = "road-to-scratch"
 # Paste the Database ID from Workers & Pages > D1 > road-to-scratch here (an identifier, not a secret).
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "6b3a3983-184d-4dfc-a90e-265be37da122"
 
 [observability]
 enabled = true
