@@ -18,6 +18,7 @@ function b64ToBytes(b64) {
  * Uses crypto.subtle.verify, which compares in constant time.
  */
 export async function verifySignature(secret, rawBody, signature) {
+  secret = typeof secret === "string" ? secret.trim() : ""; // tolerate a pasted trailing newline/space
   if (!secret || !signature || typeof rawBody !== "string") return false;
   const sig = b64ToBytes(signature.trim());
   if (!sig || sig.length !== 32) return false;
@@ -29,7 +30,7 @@ const API = "https://api.line.me/v2/bot";
 
 export class LineClient {
   constructor(token, fetchImpl = (...a) => fetch(...a)) {
-    this.token = token;
+    this.token = typeof token === "string" ? token.trim() : token;
     this.fetch = fetchImpl;
   }
 

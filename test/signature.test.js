@@ -40,3 +40,7 @@ test("webhook answers 200 to LINE's Verify call (valid signature, no events)", a
   const res = await app.fetch(webhookRequest([]), makeEnv());
   assert.equal(res.status, 200);
 });
+
+test("a channel secret pasted with surrounding whitespace still verifies", async () => {
+  assert.equal(await verifySignature(`  ${SECRET}\n`, body, sign(body)), true);
+});
