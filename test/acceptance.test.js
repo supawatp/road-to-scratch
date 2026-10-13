@@ -177,3 +177,9 @@ test("?missing=null returns 200 null for documents that don't exist yet", async 
   assert.equal(r.status, 200);
   assert.equal(await r.json(), null);
 });
+
+test("setup-mode hello tolerates punctuation and capitals", async () => {
+  const { app, line } = makeApp(FRI_2135);
+  await app.fetch(webhookRequest([textEvent("Hello!", STRANGER)]), makeEnv({ OWNER_LINE_USER_ID: "" }));
+  assert.match(lastReply(line)[0].text, new RegExp(STRANGER));
+});

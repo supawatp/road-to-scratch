@@ -39,7 +39,7 @@ export async function handleEvent(event, ctx) {
 
   if (!owner) {
     // Setup mode: tell whoever says "hello" their user ID so it can be saved as OWNER_LINE_USER_ID.
-    if (text && /^hello$/i.test(text) && userId) {
+    if (text && /^(hello|hi)\b/i.test(text) && userId) {
       await reply(`Your LINE user ID:\n${userId}\n\nSave it as the OWNER_LINE_USER_ID secret in Cloudflare. Until then I only answer "hello".`);
     }
     return;
