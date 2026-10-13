@@ -1,0 +1,429 @@
+{
+  "start": "2026-10-19",
+  "week0": {
+    "dates": "14-18 Oct 2026",
+    "title": "Setup week",
+    "items": [
+      "Book a doctor / rheumatologist visit: uric acid 8.2 with 2-3 flares a year - ask about urate-lowering medication (target < 6 mg/dL)",
+      "Book one golf lesson with a coach: swing check, priorities, and ask about your 7-iron launch (22°) and whether you add loft at impact",
+      "Ask the condo if a Pilates instructor can give you 1-2 intro sessions on the reformer",
+      "Set the SC4 at the net (ball ~10 ft from the net, unit ~5 ft behind the ball)",
+      "Tell your friend: no talking during swings in the money game",
+      "Decide your per-round loss cap and write it in the Rules tab of this tracker",
+      "Log today in the tracker - first check-in"
+    ]
+  },
+  "phases": [
+    {
+      "name": "Foundation",
+      "weeks": [
+        1,
+        4
+      ],
+      "goal": "Show up on schedule. Learn the movements. Install the routine. Get baseline numbers.",
+      "body": "Strength 3x/week at moderate effort: 2-3 sets of 10-12 reps, stop with 3-4 reps left. Easy cardio 30-40 min twice a week - one of them a swim. Mobility every day. Pilates reformer twice a week (Fri and Sun) for flexibility and core.",
+      "golf": "Pre-shot routine on every ball. Build your wedge distance chart. Putting start-line and lag work. Run the random-miss test in week 1.",
+      "habits": "Fixed wake time 7 days a week. Bedtime moves 15 min earlier each week. Drinks: max 3 nights a week in weeks 1-2, then max 2."
+    },
+    {
+      "name": "Build",
+      "weeks": [
+        5,
+        8
+      ],
+      "goal": "Get stronger and faster. Practise under pressure so the money game feels normal.",
+      "body": "Strength heavier: 3-4 sets of 6-8 reps, stop with 2-3 reps left. Add power work and speed sets (med-ball throws, kettlebell swings, low jumps). Cardio maintained. Pilates twice a week: add range in the rotation and hip exercises.",
+      "golf": "Noise drill and scored games every SC4 session. Course strategy plan for your home course. One SC4 simulator round a week using that plan.",
+      "habits": "Bedtime target 23:30, wake 07:30. Max 2 drinking nights, never the night before a round."
+    },
+    {
+      "name": "Perform",
+      "weeks": [
+        9,
+        12
+      ],
+      "goal": "Turn practice into scores. Fewer blow-up holes, steadier back nine.",
+      "body": "Maintain: 2 heavy strength days + 1 power day. Keep cardio for back-nine stamina. Pilates twice a week to keep the turn free.",
+      "golf": "Half of every SC4 session in play mode (new club and target every ball, full routine). Simulated betting rounds. On course, only targets from your strategy plan.",
+      "habits": "Hold the routine. Round-day protocol every time: sleep, water, no alcohol the night before."
+    }
+  ],
+  "weeks": [
+    {
+      "n": 1,
+      "focus": "Baseline week",
+      "sleep": "00:15 / 08:45",
+      "drinks": 3,
+      "tasks": [
+        "Benchmark test #1 (SC4 + putting) - log it in Tests",
+        "Random-miss test: 10 x 7-iron normal, then 10 with phone playing chatter - compare direction spread",
+        "Body log: weight, waist",
+        "Strength at light weights - learn the movements"
+      ]
+    },
+    {
+      "n": 2,
+      "focus": "Wedge distance chart",
+      "sleep": "00:00 / 08:30",
+      "drinks": 3,
+      "tasks": [
+        "Fill the Clubs tab: average carry for every club - 10 normal swings each on the SC4, ignore the best 2 and worst 2, average the middle 6",
+        "SC4: carry for each wedge at 3 swing lengths (9 o'clock, 10:30, full) - write the chart",
+        "Putting: gate drill + lag drill each session",
+        "Doctor visit done?"
+      ]
+    },
+    {
+      "n": 3,
+      "focus": "Routine on every shot",
+      "sleep": "23:45 / 08:15",
+      "drinks": 2,
+      "tasks": [
+        "Last 20 balls of every SC4 session: full pre-shot routine, new target each ball",
+        "Back-off rule: anything distracts you after setup - step away and restart",
+        "Add 1 rep or a little weight to each strength exercise"
+      ]
+    },
+    {
+      "n": 4,
+      "focus": "Deload + check",
+      "sleep": "23:30 / 08:00",
+      "drinks": 2,
+      "tasks": [
+        "Strength: drop one set from each exercise",
+        "Putting test only (6 ft makes, 30 ft lag)",
+        "Review chat with Claude: what's working, what's not"
+      ]
+    },
+    {
+      "n": 5,
+      "focus": "Power + noise drill",
+      "sleep": "23:30 / 07:30",
+      "drinks": 2,
+      "tasks": [
+        "Strength C adds med-ball throws, kettlebell swings, low box jumps",
+        "Speed set at the end of each SC4 full-swing session: 5 max-effort swings, log the top club speed",
+        "Noise drill in every SC4 session: someone talks or phone plays chatter - full routine, back off when needed",
+        "Strength A/B move to 6-8 reps, heavier"
+      ]
+    },
+    {
+      "n": 6,
+      "focus": "Course strategy plan",
+      "sleep": "23:30 / 07:30",
+      "drinks": 2,
+      "tasks": [
+        "Build a hole-by-hole plan for your home course with Claude (target, club, danger side)",
+        "SC4 sim round on E6 using the plan",
+        "Wedge ladder scored game"
+      ]
+    },
+    {
+      "n": 7,
+      "focus": "Pressure games",
+      "sleep": "23:30 / 07:30",
+      "drinks": 2,
+      "tasks": [
+        "Putting: 10 in a row from 4 ft (restart on miss)",
+        "SC4: 9-ball window test with 7-iron (score each ball in or out)",
+        "Put a small consequence on each game (e.g., 10 push-ups for a fail)"
+      ]
+    },
+    {
+      "n": 8,
+      "focus": "Deload + Benchmark #2",
+      "sleep": "23:30 / 07:30",
+      "drinks": 2,
+      "tasks": [
+        "Benchmark test #2 (SC4 + putting) - compare with week 1",
+        "Body log + book uric acid re-test if on medication",
+        "Strength: drop one set from each exercise"
+      ]
+    },
+    {
+      "n": 9,
+      "focus": "Play mode",
+      "sleep": "23:30 / 07:30",
+      "drinks": 2,
+      "tasks": [
+        "Half of every SC4 session in play mode",
+        "Driver: track club speed every session",
+        "Strength: 2 heavy days + 1 power day"
+      ]
+    },
+    {
+      "n": 10,
+      "focus": "Simulated betting round",
+      "sleep": "23:30 / 07:30",
+      "drinks": 2,
+      "tasks": [
+        "E6 sim round with a real (small) stake or consequence and chatter playing",
+        "Post-shot reset after every bad shot: 10 seconds, breath, re-grip, next",
+        "Review your round logs: front vs back nine"
+      ]
+    },
+    {
+      "n": 11,
+      "focus": "Round-day discipline",
+      "sleep": "23:30 / 07:30",
+      "drinks": 2,
+      "tasks": [
+        "Round-day protocol on every round",
+        "Only strategy-plan targets on course",
+        "Keep strength and mobility going"
+      ]
+    },
+    {
+      "n": 12,
+      "focus": "Final Benchmark + review",
+      "sleep": "23:30 / 07:30",
+      "drinks": 2,
+      "tasks": [
+        "Benchmark test #3 - compare with weeks 1 and 8",
+        "Body log: weight, waist, uric acid if re-tested",
+        "12-week review chat with Claude - set the next 12 weeks"
+      ]
+    }
+  ],
+  "template": {
+    "1": {
+      "am": "Strength A - lower body + core",
+      "pm": "Putting green 30 min",
+      "amKey": "strA",
+      "pmKey": "putt"
+    },
+    "2": {
+      "am": "Mobility + easy cardio 40 min",
+      "pm": "SC4 at the net 60 min - wedges",
+      "amKey": "cardio",
+      "pmKey": "sc4w"
+    },
+    "3": {
+      "am": "Strength B - upper body + rotation",
+      "pm": "Putting green 30 min",
+      "amKey": "strB",
+      "pmKey": "putt"
+    },
+    "4": {
+      "am": "Mobility + easy swim 30-40 min",
+      "pm": "SC4 at the net 60 min - full swing",
+      "amKey": "swim",
+      "pmKey": "sc4f"
+    },
+    "5": {
+      "am": "Strength C - power + golf-specific",
+      "pm": "Pilates reformer A - core and hips (40 min)",
+      "amKey": "strC",
+      "pmKey": "pilA"
+    },
+    "6": {
+      "am": "Round, or SC4 simulator round",
+      "pm": "Mobility 10 min",
+      "amKey": "round",
+      "pmKey": "mob"
+    },
+    "0": {
+      "am": "Round, or rest",
+      "pm": "Pilates reformer B - rotation and flexibility, optional easy swim, 5-min weekly review",
+      "amKey": "round",
+      "pmKey": "pilB"
+    }
+  },
+  "sessions": {
+    "strA": {
+      "title": "Strength A - lower body + core",
+      "time": "50-60 min",
+      "items": [
+        "Warm-up: 5 min bike + mobility flow",
+        "Goblet squat or trap-bar deadlift - 3 x 8-10||goblet squat proper form",
+        "Rear-foot elevated split squat - 3 x 8 each leg||rear foot elevated split squat form",
+        "Dumbbell Romanian deadlift - 3 x 10||dumbbell romanian deadlift form",
+        "Pallof press - 3 x 10 each side||pallof press exercise",
+        "Dead bug - 3 x 8 each side||dead bug exercise form",
+        "Farmer carry - 3 x 30 m||farmer carry exercise form"
+      ]
+    },
+    "strB": {
+      "title": "Strength B - upper body + rotation",
+      "time": "50-60 min",
+      "items": [
+        "Warm-up: 5 min rower + band pull-aparts",
+        "Dumbbell bench press or push-up - 3 x 8-10||dumbbell bench press form",
+        "One-arm dumbbell row - 3 x 10 each side||one arm dumbbell row form",
+        "Half-kneeling cable chop - 3 x 10 each side||half kneeling cable chop",
+        "Half-kneeling cable lift - 3 x 10 each side||half kneeling cable lift",
+        "Landmine press - 3 x 8 each side||single arm landmine press",
+        "Face pull - 3 x 12||cable face pull form",
+        "Side plank - 3 x 30 s each side||side plank proper form"
+      ]
+    },
+    "strC": {
+      "title": "Strength C - power + golf-specific",
+      "time": "45 min",
+      "items": [
+        "Warm-up: 5 min bike + hip and thoracic mobility",
+        "Med-ball rotational throw at a wall (or fast cable rotation) - 4 x 5 each side||medicine ball rotational throw golf",
+        "Kettlebell swing - 4 x 10||kettlebell swing proper form",
+        "Low box jump (weeks 1-4: step-ups) - 3 x 5||low box jump beginner",
+        "Single-leg Romanian deadlift - 3 x 8 each leg||single leg romanian deadlift form",
+        "Lateral lunge - 3 x 8 each side||lateral lunge form",
+        "Thoracic open books - 2 x 8 each side||thoracic open book stretch"
+      ],
+      "note": "Power reps are fast and crisp. Stop the set when speed drops."
+    },
+    "cardio": {
+      "title": "Mobility + easy cardio",
+      "time": "55 min",
+      "items": [
+        "Mobility flow (below) - 15 min",
+        "Incline walk, bike, rower or swim - 40 min at talk-but-not-sing pace (roughly 100-120 bpm)||zone 2 cardio explained"
+      ]
+    },
+    "swim": {
+      "title": "Easy swim (25 m pool)",
+      "time": "30-40 min",
+      "items": [
+        "Outdoor pool: swim before 10:00 or after 16:00 (see Sun & UV rules)",
+        "Warm-up: 4 lengths (100 m) easy, any stroke",
+        "Main: 12-16 lengths (300-400 m) in 2-length repeats with 20-30 s rest - easy, steady breathing||freestyle swimming technique for adults",
+        "Mix freestyle and backstroke to balance the shoulders; go easy on breaststroke kick if your knees complain||backstroke technique beginner adults",
+        "Kick: 4 lengths with a kickboard (legs and hips)||kickboard drills freestyle",
+        "Cool-down: 2-4 lengths very easy",
+        "New to lap swimming? Start with 15-20 min and rest as needed, then add 2 lengths a week||lap swimming for beginners adults"
+      ],
+      "note": "Swimming is easy on the joints and good for heart and recovery, but it doesn't replace the gym for muscle and bone. Stop if a shoulder hurts. Skip it during a gout flare, and drink water afterwards - you still sweat in the pool."
+    },
+    "pilA": {
+      "title": "Pilates reformer A - core and hips",
+      "time": "40 min",
+      "items": [
+        "Footwork series (parallel, heels, toes, wide V) - 10 each, medium springs||reformer footwork series beginner",
+        "Bridging on the reformer - 10||reformer bridge beginner",
+        "Hundred with feet in tabletop - 5 rounds of 10 breaths||reformer hundred modified beginner",
+        "Leg circles in the straps - 8 each direction||reformer leg circles straps",
+        "Seated rowing, front and back - 8 each||reformer rowing series beginner",
+        "Elephant - 8||reformer elephant exercise",
+        "Knee stretches (round back, flat back) - 8 each||reformer knee stretch series",
+        "Mermaid side stretch - 4 each side||reformer mermaid stretch"
+      ],
+      "note": "New to the reformer? Book 1-2 sessions with a certified instructor to learn springs and straps safely. Light springs for stretches, medium for footwork. Skip footwork during a gout flare."
+    },
+    "pilB": {
+      "title": "Pilates reformer B - rotation and flexibility",
+      "time": "30-40 min",
+      "items": [
+        "Footwork series - 10 each, light to medium springs||reformer footwork series beginner",
+        "Frog and leg lowers in the straps (hamstrings, hips) - 8 each||reformer frog leg lowers straps",
+        "Seated spine twist with a strap - 6 each side||reformer seated spine twist",
+        "Kneeling chest expansion - 8||reformer chest expansion kneeling",
+        "Swan on the long box (gentle back extension) - 6||reformer swan on box beginner",
+        "Side-lying leg series on the carriage - 8 each side||reformer side lying leg series",
+        "Hip-flexor lunge stretch on the carriage - 30 s each side||reformer lunge hip flexor stretch",
+        "Mermaid with twist - 4 each side||reformer mermaid twist"
+      ],
+      "note": "This is your flexibility session: thoracic rotation, hips and hamstrings are what let you turn fully in the backswing. Move slowly and breathe out on the effort."
+    },
+    "mob": {
+      "title": "Mobility flow",
+      "time": "10-15 min",
+      "items": [
+        "Cat-cow - 10||cat cow stretch",
+        "Thoracic open books - 8 each side||thoracic open book stretch",
+        "90/90 hip switches - 8 each side||90 90 hip switch mobility",
+        "World's greatest stretch - 5 each side||world's greatest stretch",
+        "Hamstring floss - 10 each leg||hamstring nerve floss",
+        "Wrist and forearm circles - 30 s||wrist mobility for golfers"
+      ]
+    },
+    "putt": {
+      "title": "Putting green",
+      "time": "30 min",
+      "items": [
+        "Gate drill from 3 ft - 20 putts (start line)||putting gate drill",
+        "Clock drill - 4 balls at 3, 4, 5 and 6 ft around the hole||putting clock drill",
+        "Lag drill - 10 putts from 30-40 ft, finish inside 3 ft||lag putting drill",
+        "Finisher: 10 in a row from 4 ft (restart on a miss)||short putt pressure drill"
+      ]
+    },
+    "sc4w": {
+      "title": "SC4 - wedges and distance control",
+      "time": "60 min",
+      "items": [
+        "Warm-up - 10 easy wedges",
+        "Distance ladder: 30 / 50 / 70 / 90 / 110 yd carry, 5 balls each - aim within 5 yd||wedge distance ladder drill",
+        "Swing-length chart: each wedge at 9 o'clock, 10:30 and full - log the carries||wedge clock system distance control",
+        "Last 15 balls in play mode: new target every ball, full routine||random practice golf range"
+      ]
+    },
+    "sc4f": {
+      "title": "SC4 - full swing",
+      "time": "60 min",
+      "items": [
+        "Warm-up - 10 balls",
+        "7-iron stock shot - 20 balls: launch direction within 3 degrees, watch carry spread||iron start line practice launch monitor",
+        "Driver - 15 balls if the net has room (otherwise 3-wood or hybrid): club speed, carry, launch direction||driver practice launch monitor",
+        "Coach drills from your last lesson",
+        "Speed set (from week 5): 5 max-effort swings with full rest - log the top club speed||golf speed training max effort swings",
+        "Last 20 balls in play mode: driver, iron, wedge like a real hole, full routine, back off if distracted||golf pre shot routine"
+      ]
+    },
+    "round": {
+      "title": "Round-day protocol",
+      "time": "",
+      "items": [
+        "Night before: no alcohol, no dramas, lights out by 22:00 for a 06:30 tee",
+        "Sun: SPF 50 PA++++ before you leave, reapply at the turn; hat, UV sunglasses, arm sleeves",
+        "500 ml water before the round, about 250 ml every 2-3 holes (more for an 11:00 tee)",
+        "Snack at the turn (banana, nuts) to protect the back nine",
+        "Pre-shot routine on every shot; back off if anyone talks||golf pre shot routine",
+        "Pick every approach club with the Clubs tab: average carry to the middle of the green; between clubs, take the longer one",
+        "Bogey is fine - take the safe side, no hero shots",
+        "Log the round in the tracker the same day, including approaches that finished short or long"
+      ]
+    }
+  },
+  "tests": {
+    "title": "Benchmark test (weeks 1, 8, 12)",
+    "items": [
+      "Driver - 10 swings with full routine (on the SC4 at the net if there's room, otherwise take the SC4 to a driving range): average club speed, average carry, launch direction spread (furthest left to furthest right)",
+      "7-iron - 10 swings: average club speed and ball speed, average carry, carry spread (longest minus shortest), direction spread",
+      "Wedge test - 3 balls each at 40 / 60 / 80 / 100 yd: within 5 yd = 2 points, within 10 yd = 1 point (max 24)",
+      "Putting - 10 putts from 6 ft (count makes) and 10 putts from 30 ft (count finishing inside 3 ft)"
+    ]
+  },
+  "mind": [
+    "Pre-shot routine: pick the target from behind the ball, one rehearsal swing, step in, look at the target twice, go. Same rhythm every time.",
+    "Back-off rule: if anyone talks or moves after you set up, step away and restart. Every time. No apology needed.",
+    "Post-shot reset: 10 seconds to react, then one slow breath, re-grip, and judge only whether you did your routine.",
+    "Before the money game: agree 'no talking during swings'. The Rules of Golf expect players not to distract someone making a stroke."
+  ],
+  "money": [
+    "Set a maximum loss per round before you tee off. When you hit it, the betting stops for the day.",
+    "No presses or double-or-nothing when you are behind or angry.",
+    "Log money in every round so you see the real monthly number."
+  ],
+  "food": [
+    "Alcohol: follow the weekly limit in the plan. All types raise flare risk, including wine.",
+    "Water: 2.5-3 L a day, more on golf and gym days.",
+    "Limit organ meats, shellfish, anchovy and sardine, sugary drinks and juice. Moderate red meat.",
+    "Good protein for building muscle: eggs, low-fat dairy, chicken, fish (not the high-purine ones), tofu and beans.",
+    "No vitamin C supplements for gout. If you use a painkiller in a flare, check the type with your doctor (aspirin is not a good choice for gout)."
+  ],
+  "course": [
+    "Pick clubs by your average carry, never your best shot.",
+    "Aim at the middle of the green. With a front pin, still play to the middle.",
+    "Between clubs, take the longer one. Arccos data: about 40% of amateur approaches finish short of the green and only about 5% go long.",
+    "Into the wind or uphill: at least one more club.",
+    "From the rough: expect less control - aim for the widest part of the green.",
+    "Your numbers come from mats and a net. Check them against the round log: if most misses are still short after 3 rounds, lower each club's number by 5 yards."
+  ],
+  "sun": [
+    "Bangkok's UV index is often 11 or higher (extreme). The worst hours are 10:00-15:00. Swim and practise outdoors before 10:00 or after 16:00.",
+    "Sunscreen: broad-spectrum SPF 50 (30 at the very least), PA+++ or PA++++, water resistant. Apply 15 minutes before going out.",
+    "Swimming: 'water resistant' lasts 40 minutes in water, 'very water resistant' 80 minutes. Reapply after that and after towelling off.",
+    "Golf: reapply every 90 minutes to 2 hours - at the turn at the latest. Don't miss ears, neck, nose, the backs of your hands and the top of your head.",
+    "Wear: a wide-brim hat (or cap with a neck flap), UV sunglasses, UPF 50+ arm sleeves or long sleeves. In the pool: a UPF 50+ rash guard and UV-protected goggles.",
+    "Prefer 06:30 tee times: cooler, and most of the round is before peak UV. An 11:00 tee puts the whole round in the worst window.",
+    "Golfers get more skin cancer (Australian study: 27% had a diagnosis vs 7% of the public). Book a yearly skin check with a dermatologist and report any new or changing spot."
+  ]
+}

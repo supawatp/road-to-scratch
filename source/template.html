@@ -1,0 +1,797 @@
+<title>Road to Scratch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one calm column like a clubhouse scorecard — sticky tab rail, white ground, engraved display type, hairline rules, data in mono. */
+:root{
+  --bg:#ffffff; --surface:#f6f7f4; --raise:#ffffff; --ink:#17201b; --ink2:#4a544e; --muted:#737d77;
+  --line:#e4e7e2; --chip:#eef1ec; --accent:#1f4d3a; --accent-ink:#ffffff; --gold:#9a7e45;
+  --series:#2a7f56; --series-fill:rgba(42,127,86,.10); --good:#2e7d4f; --warn:#9a5f0c; --bad:#b3402f;
+  --f-display:"Marcellus","Cormorant Garamond",Georgia,serif;
+  --f-body:"Instrument Sans",-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-data:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1210; --surface:#151a17; --raise:#1a201c; --ink:#ecefec; --ink2:#c2c9c4; --muted:#8f9892;
+  --line:#2a322d; --chip:#1f2622; --accent:#8cc7a6; --accent-ink:#0e1210; --gold:#cdb27a;
+  --series:#33a06e; --series-fill:rgba(51,160,110,.16); --good:#5fbf86; --warn:#e0a04a; --bad:#e07a68; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1210; --surface:#151a17; --raise:#1a201c; --ink:#ecefec; --ink2:#c2c9c4; --muted:#8f9892;
+  --line:#2a322d; --chip:#1f2622; --accent:#8cc7a6; --accent-ink:#0e1210; --gold:#cdb27a;
+  --series:#33a06e; --series-fill:rgba(51,160,110,.16); --good:#5fbf86; --warn:#e0a04a; --bad:#e07a68; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+.wrap{max-width:780px;margin:0 auto;padding-inline:16px;padding-block:20px 64px}
+header.top{display:grid;gap:4px;padding-block:8px 16px}
+.eyebrow{font-family:var(--f-data);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
+h1{font-family:var(--f-display);font-weight:400;font-size:clamp(30px,6vw,42px);line-height:1.1;margin:0;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:400;font-size:22px;margin:0;text-wrap:balance}
+h3{font-size:15px;font-weight:600;margin:0}
+.sub{color:var(--ink2);margin:0}
+.mono{font-family:var(--f-data);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);margin-inline:-16px;padding-inline:16px;overflow-x:auto;scrollbar-width:none}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs .rail{display:flex;gap:4px;min-width:max-content}
+nav.tabs button{appearance:none;border:0;background:none;font:500 14px var(--f-body);color:var(--muted);padding:12px 12px;border-bottom:2px solid transparent;cursor:pointer}
+nav.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+nav.tabs button:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+section.panel{display:grid;gap:20px;padding-top:20px}
+.card{background:var(--raise);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:grid;gap:12px;min-width:0}
+.flat{display:grid;gap:12px;min-width:0}
+.rule{height:1px;background:var(--line);border:0;margin:0}
+.banner{border:1px solid var(--line);border-left:3px solid var(--warn);background:var(--surface);border-radius:8px;padding:10px 12px;font-size:14px}
+.banner.good{border-left-color:var(--good)}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.between{justify-content:space-between}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.tile{background:var(--surface);border-radius:8px;padding:12px;display:grid;gap:2px}
+.tile .lbl{font-size:12px;color:var(--muted);letter-spacing:.04em}
+.tile .val{font-family:var(--f-display);font-size:26px;line-height:1.1}
+.tile .val small{font-family:var(--f-data);font-size:12px;color:var(--muted)}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;padding:3px 10px;border-radius:999px;background:var(--chip);color:var(--ink2)}
+.pill.good{color:var(--good)} .pill.warn{color:var(--warn)} .pill.bad{color:var(--bad)}
+.dot{width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block}
+.sess{display:grid;grid-template-columns:56px 1fr;gap:10px;align-items:start}
+.sess .when{font-family:var(--f-data);font-size:11px;letter-spacing:.1em;color:var(--gold);padding-top:3px;text-transform:uppercase}
+details.acc{border-top:1px solid var(--line);padding-top:10px}
+details.acc:first-of-type{border-top:0;padding-top:0}
+summary{cursor:pointer;font-weight:500;list-style:none;display:flex;justify-content:space-between;gap:10px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";font-family:var(--f-data);color:var(--muted)}
+details[open] > summary::after{content:"–"}
+ul.list{margin:8px 0 0;padding-left:18px;display:grid;gap:4px;color:var(--ink2)}
+label.f{display:grid;gap:4px;font-size:13px;color:var(--ink2);min-width:0}
+input[type=text],input[type=number],input[type=date],select,textarea{font:15px var(--f-body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:100%;min-width:0}
+input[type=number]{font-family:var(--f-data)}
+textarea{resize:vertical;min-height:60px}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chk{position:relative}
+.chk input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.chk span{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--line);border-radius:999px;font-size:14px;color:var(--ink2);background:var(--bg)}
+.chk span::before{content:"";width:14px;height:14px;border-radius:50%;border:1.5px solid var(--muted)}
+.chk input:checked + span{border-color:var(--accent);color:var(--ink)}
+.chk input:checked + span::before{background:var(--accent);border-color:var(--accent);box-shadow:inset 0 0 0 2px var(--bg)}
+.chk input:focus-visible + span{outline:2px solid var(--accent);outline-offset:2px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.seg label{position:relative}
+.seg input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.seg span{display:block;padding:7px 13px;font-family:var(--f-data);font-size:13px;color:var(--ink2)}
+.seg input:checked + span{background:var(--accent);color:var(--accent-ink)}
+.seg input:focus-visible + span{outline:2px solid var(--accent);outline-offset:-2px}
+.btn{appearance:none;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);font:600 14px var(--f-body);padding:10px 18px;border-radius:999px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.small{padding:5px 12px;font-size:12px;font-weight:500}
+.btn.danger{border-color:var(--bad);color:var(--bad);background:transparent}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.status{font-size:13px;color:var(--muted)}
+.weeks{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+.weeks button{appearance:none;flex:0 0 auto;min-width:44px;border:1px solid var(--line);background:var(--bg);color:var(--ink2);border-radius:8px;padding:6px 8px;font:500 12px var(--f-data);cursor:pointer;display:grid;gap:0;justify-items:center}
+.weeks button b{font:400 16px var(--f-display);color:var(--ink)}
+.weeks button[data-now="1"]{border-color:var(--gold)}
+.weeks button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.weeks button[aria-pressed="true"] b{color:var(--accent-ink)}
+.phase-tag{font-family:var(--f-data);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold)}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font:500 11px var(--f-data);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--surface)}
+td.num,th.num{text-align:right;font-family:var(--f-data);font-variant-numeric:tabular-nums}
+td.tot{font-weight:600}
+tr:last-child td{border-bottom:0}
+.empty{padding:18px;border:1px dashed var(--line);border-radius:var(--r);color:var(--muted);font-size:14px;text-align:center}
+.chart{position:relative;min-width:0}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart .tip{position:absolute;pointer-events:none;background:var(--raise);border:1px solid var(--line);border-radius:6px;padding:6px 8px;font-size:12px;box-shadow:0 4px 14px rgba(0,0,0,.08);white-space:nowrap;transform:translate(-50%,-110%)}
+.axis text{font:11px var(--f-data);fill:var(--muted)}
+.gridline{stroke:var(--line);stroke-width:1}
+.target{stroke:var(--gold);stroke-width:1;stroke-dasharray:4 4}
+.target-lbl{font:11px var(--f-data);fill:var(--gold)}
+.endlbl{font:600 12px var(--f-data);fill:var(--ink)}
+.ruleslist{margin:0;padding-left:18px;display:grid;gap:6px;color:var(--ink2)}
+a.yt{display:inline-block;margin-left:6px;font:500 11px var(--f-data);letter-spacing:.04em;color:var(--accent);border:1px solid var(--line);border-radius:999px;padding:1px 8px;text-decoration:none;white-space:nowrap;vertical-align:1px}
+a.yt:hover{border-color:var(--accent)}
+a.yt:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#yd-table input{width:58px;padding:6px;text-align:right}
+#yd-table td,#yd-table th{padding:6px;vertical-align:middle}
+.pick{display:grid;gap:6px;background:var(--surface);border-radius:8px;padding:14px}
+.pick .club{font-family:var(--f-display);font-size:32px;line-height:1.1}
+.pick .club small{font-family:var(--f-data);font-size:13px;color:var(--muted)}
+@media (min-width:640px){.wrap{padding-inline:24px}nav.tabs{margin-inline:-24px;padding-inline:24px}}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">Golf &amp; Health · 12-week program</div>
+    <h1>Road to Scratch</h1>
+    <p class="sub" id="hdr-sub">Loading…</p>
+  </header>
+
+  <nav class="tabs" aria-label="Sections"><div class="rail" role="tablist">
+    <button role="tab" data-tab="today" aria-selected="true">Today</button>
+    <button role="tab" data-tab="plan" aria-selected="false">Plan</button>
+    <button role="tab" data-tab="rounds" aria-selected="false">Rounds</button>
+    <button role="tab" data-tab="clubs" aria-selected="false">Clubs</button>
+    <button role="tab" data-tab="tests" aria-selected="false">Tests</button>
+    <button role="tab" data-tab="body" aria-selected="false">Body</button>
+    <button role="tab" data-tab="progress" aria-selected="false">Progress</button>
+  </div></nav>
+
+  <div id="dbnote" class="banner" hidden style="margin-top:16px">Saving isn't available in this view. Open the tracker on claude.ai while signed in to log entries.</div>
+
+  <!-- TODAY -->
+  <section class="panel" id="p-today" role="tabpanel">
+    <div class="card" id="coach-card" hidden>
+      <div class="row between"><span class="phase-tag">Coach note</span><span class="muted mono" style="font-size:12px" id="coach-date"></span></div>
+      <h2 id="coach-title"></h2>
+      <p style="margin:0;white-space:pre-line" id="coach-msg"></p>
+      <ul class="ruleslist" id="coach-alerts" hidden></ul>
+    </div>
+    <div id="miss-banner" class="banner" hidden></div>
+    <div class="card">
+      <div class="row between"><h2>Today's sessions</h2><span class="pill" id="today-phase"></span></div>
+      <div id="today-sessions" class="flat"></div>
+    </div>
+    <div class="card">
+      <div class="row between"><h2>Check-in</h2><label class="f" style="width:160px"><span class="muted">Date</span><input type="date" id="ci-date"></label></div>
+      <div class="chips" role="group" aria-label="Habits">
+        <label class="chk"><input type="checkbox" id="ci-woke"><span>Woke on time</span></label>
+        <label class="chk"><input type="checkbox" id="ci-trained"><span>Did the planned session</span></label>
+        <label class="chk"><input type="checkbox" id="ci-mob"><span>Mobility 10 min</span></label>
+        <label class="chk"><input type="checkbox" id="ci-screens"><span>Screens off on time last night</span></label>
+      </div>
+      <div class="fields">
+        <label class="f">Drinks (glasses / shots)<input type="number" id="ci-drinks" min="0" max="20" step="1" inputmode="numeric"></label>
+        <label class="f">Golf practice (min)<input type="number" id="ci-practice" min="0" max="600" step="5" inputmode="numeric"></label>
+        <label class="f">Water (litres)<input type="number" id="ci-water" min="0" max="8" step="0.5" inputmode="decimal"></label>
+      </div>
+      <div class="row"><span class="f" style="font-size:13px;color:var(--ink2)">Energy today</span>
+        <div class="seg" role="radiogroup" aria-label="Energy 1 to 5" id="ci-energy">
+          <label><input type="radio" name="energy" id="ci-energy-1" value="1"><span>1</span></label>
+          <label><input type="radio" name="energy" id="ci-energy-2" value="2"><span>2</span></label>
+          <label><input type="radio" name="energy" id="ci-energy-3" value="3"><span>3</span></label>
+          <label><input type="radio" name="energy" id="ci-energy-4" value="4"><span>4</span></label>
+          <label><input type="radio" name="energy" id="ci-energy-5" value="5"><span>5</span></label>
+        </div><span class="muted mono" style="font-size:12px">1 drained · 2 low · 3 normal · 4 good · 5 excellent</span></div>
+      <label class="f">Note<input type="text" id="ci-note" maxlength="300" placeholder="How did it go? Anything that got in the way?"></label>
+      <div class="row"><button class="btn" id="ci-save">Save check-in</button><span class="status" id="ci-status"></span></div>
+    </div>
+    <div class="card">
+      <div class="row between"><h2>This week</h2><span class="pill" id="streak-pill"></span></div>
+      <div class="tiles" id="week-tiles"></div>
+      <p class="muted" style="margin:0;font-size:13px" id="tonight"></p>
+    </div>
+  </section>
+
+  <!-- PLAN -->
+  <section class="panel" id="p-plan" role="tabpanel" hidden>
+    <div class="flat">
+      <h2>12 weeks</h2>
+      <div class="weeks" id="week-strip" aria-label="Choose a week"></div>
+      <div class="card" id="week-detail"></div>
+    </div>
+    <div class="flat"><h2>Phases</h2><div class="grid2" id="phases"></div></div>
+    <div class="flat"><h2>Weekly template</h2>
+      <div class="tablewrap"><table id="tpl"><thead><tr><th>Day</th><th>After waking</th><th>Evening</th></tr></thead><tbody></tbody></table></div>
+      <p class="muted" style="margin:0;font-size:13px">Round day? The round replaces that day's sessions. Rule: on a bad day do a 20-minute version. Never miss twice.</p>
+    </div>
+    <div class="card"><h2>Sessions</h2><div id="sessions" class="flat"></div></div>
+    <div class="card"><h2 id="tests-title"></h2><ul class="ruleslist" id="tests-list"></ul></div>
+    <div class="card" id="rules">
+      <h2>Rules</h2>
+      <h3>Mind</h3><ul class="ruleslist" id="r-mind"></ul>
+      <hr class="rule">
+      <h3>Course</h3><ul class="ruleslist" id="r-course"></ul>
+      <hr class="rule">
+      <h3>Money</h3><ul class="ruleslist" id="r-money"></ul>
+      <div class="row"><label class="f" style="max-width:220px">My max loss per round (THB)<input type="number" id="cap" min="0" step="1000" inputmode="numeric" placeholder="Set your number"></label><button class="btn small ghost" id="cap-save">Save</button><span class="status" id="cap-status"></span></div>
+      <hr class="rule">
+      <h3>Food &amp; gout</h3><ul class="ruleslist" id="r-food"></ul>
+      <hr class="rule">
+      <h3>Sun &amp; UV</h3><ul class="ruleslist" id="r-sun"></ul>
+    </div>
+  </section>
+
+  <!-- ROUNDS -->
+  <section class="panel" id="p-rounds" role="tabpanel" hidden>
+    <div class="tiles" id="round-tiles"></div>
+    <details class="card" id="round-form-wrap">
+      <summary><h2>Log a round</h2></summary>
+      <form id="round-form" class="flat" style="margin-top:12px">
+        <div class="fields">
+          <label class="f">Date<input type="date" id="rd-date" required></label>
+          <label class="f">Course<input type="text" id="rd-course" maxlength="80"></label>
+          <label class="f">Tee time<select id="rd-tee"><option>06:30</option><option>11:00</option><option>Other</option></select></label>
+          <label class="f">Sleep night before (h)<input type="number" id="rd-sleep" min="0" max="14" step="0.5"></label>
+          <label class="f">Drinks night before<input type="number" id="rd-drinks" min="0" max="20" step="1"></label>
+        </div>
+        <div class="fields">
+          <label class="f">Front 9 (OUT)<input type="number" id="rd-front" min="27" max="90" required></label>
+          <label class="f">Back 9 (IN)<input type="number" id="rd-back" min="27" max="90" required></label>
+          <label class="f">Fairways hit (/14)<input type="number" id="rd-fw" min="0" max="18"></label>
+          <label class="f">Greens in reg. (/18)<input type="number" id="rd-gir" min="0" max="18"></label>
+          <label class="f">Putts<input type="number" id="rd-putts" min="0" max="72"></label>
+          <label class="f">3-putts<input type="number" id="rd-3p" min="0" max="18"></label>
+          <label class="f">Penalties<input type="number" id="rd-pen" min="0" max="30"></label>
+          <label class="f">Doubles or worse<input type="number" id="rd-dbl" min="0" max="18"></label>
+          <label class="f">Approaches short of green<input type="number" id="rd-short" min="0" max="18"></label>
+          <label class="f">Approaches long of green<input type="number" id="rd-long" min="0" max="18"></label>
+          <label class="f">Money (THB, + won / − lost)<input type="number" id="rd-money" step="500"></label>
+        </div>
+        <div class="row"><span style="font-size:13px;color:var(--ink2)">Mind (1 = rattled, 5 = calm)</span>
+          <div class="seg" role="radiogroup" aria-label="Mind 1 to 5">
+            <label><input type="radio" name="rdmind" id="rd-mind-1" value="1"><span>1</span></label><label><input type="radio" name="rdmind" id="rd-mind-2" value="2"><span>2</span></label><label><input type="radio" name="rdmind" id="rd-mind-3" value="3"><span>3</span></label><label><input type="radio" name="rdmind" id="rd-mind-4" value="4"><span>4</span></label><label><input type="radio" name="rdmind" id="rd-mind-5" value="5"><span>5</span></label>
+          </div></div>
+        <label class="f">Notes (what cost you shots?)<textarea id="rd-note" maxlength="500"></textarea></label>
+        <div class="row"><button class="btn" type="submit" id="rd-save">Save round</button><span class="status" id="rd-status"></span></div>
+      </form>
+    </details>
+    <div class="flat"><h2>Rounds</h2><div id="round-list"></div></div>
+  </section>
+
+  <!-- CLUBS -->
+  <section class="panel" id="p-clubs" role="tabpanel" hidden>
+    <div class="card">
+      <h2>Club picker</h2>
+      <p class="muted" style="margin:0;font-size:13px">For the course. It uses your average carry, so a normal strike reaches the middle of the green.</p>
+      <div class="fields">
+        <label class="f">Yards to the middle of the green<input type="number" id="pk-dist" min="20" max="320" inputmode="numeric" placeholder="e.g. 145"></label>
+        <label class="f">Conditions<select id="pk-adj"><option value="0">Flat, calm</option><option value="1">Into wind or uphill (+1 club)</option><option value="2">Strong wind or steep uphill (+2 clubs)</option><option value="-1">Downwind or downhill (−1 club)</option></select></label>
+      </div>
+      <div id="pk-out" class="pick"></div>
+    </div>
+    <div class="card">
+      <div class="row between"><h2>My yardages</h2><span class="muted mono" style="font-size:12px">average carry · yards</span></div>
+      <p class="muted" style="margin:0;font-size:13px">How to measure: 10 normal swings per club on the SC4 with your full routine. Ignore the best 2 and worst 2, then average the middle 6. Wedges also get 10:30 and 9:00 swing lengths.</p>
+      <div class="tablewrap"><table id="yd-table"><thead><tr><th>Club</th><th class="num">Full</th><th class="num">10:30</th><th class="num">9:00</th></tr></thead><tbody></tbody></table></div>
+      <div class="row"><button class="btn" id="yd-save">Save yardages</button><span class="status" id="yd-status"></span></div>
+    </div>
+    <div class="card"><h3>Rules for picking a club</h3><ul class="ruleslist" id="c-course"></ul></div>
+  </section>
+
+  <!-- TESTS -->
+  <section class="panel" id="p-tests" role="tabpanel" hidden>
+    <details class="card">
+      <summary><h2>Log a benchmark test</h2></summary>
+      <form id="test-form" class="flat" style="margin-top:12px">
+        <p class="muted" style="margin:0;font-size:13px">Full routine on every ball. Leave blank anything you didn't test.</p>
+        <div class="fields">
+          <label class="f">Date<input type="date" id="ts-date" required></label>
+          <label class="f">Driver club speed (mph)<input type="number" id="ts-dspeed" step="0.1" min="40" max="140"></label>
+          <label class="f">Driver carry (yd)<input type="number" id="ts-dcarry" step="1" min="50" max="350"></label>
+          <label class="f">Driver direction spread (°)<input type="number" id="ts-ddir" step="0.1" min="0" max="40"></label>
+          <label class="f">7-iron club speed (mph)<input type="number" id="ts-ispeed" step="0.1" min="40" max="130"></label>
+          <label class="f">7-iron ball speed (mph)<input type="number" id="ts-iball" step="0.1" min="40" max="160"></label>
+          <label class="f">7-iron carry (yd)<input type="number" id="ts-icarry" step="1" min="50" max="250"></label>
+          <label class="f">7-iron carry spread (yd)<input type="number" id="ts-ispread" step="1" min="0" max="100"></label>
+          <label class="f">7-iron direction spread (°)<input type="number" id="ts-idir" step="0.1" min="0" max="40"></label>
+          <label class="f">Wedge test (/24)<input type="number" id="ts-wedge" min="0" max="24"></label>
+          <label class="f">6-ft putts made (/10)<input type="number" id="ts-p6" min="0" max="10"></label>
+          <label class="f">30-ft lags inside 3 ft (/10)<input type="number" id="ts-lag" min="0" max="10"></label>
+        </div>
+        <label class="f">Notes<input type="text" id="ts-note" maxlength="300"></label>
+        <div class="row"><button class="btn" type="submit">Save test</button><span class="status" id="ts-status"></span></div>
+      </form>
+    </details>
+    <div class="flat"><h2>Tests</h2><div id="test-list"></div></div>
+  </section>
+
+  <!-- BODY -->
+  <section class="panel" id="p-body" role="tabpanel" hidden>
+    <details class="card">
+      <summary><h2>Log body &amp; health</h2></summary>
+      <form id="body-form" class="flat" style="margin-top:12px">
+        <div class="fields">
+          <label class="f">Date<input type="date" id="bd-date" required></label>
+          <label class="f">Weight (kg)<input type="number" id="bd-weight" step="0.1" min="40" max="160"></label>
+          <label class="f">Waist (cm)<input type="number" id="bd-waist" step="0.5" min="50" max="150"></label>
+          <label class="f">Uric acid (mg/dL)<input type="number" id="bd-uric" step="0.1" min="1" max="15"></label>
+        </div>
+        <div class="chips"><label class="chk"><input type="checkbox" id="bd-flare"><span>Gout flare</span></label></div>
+        <label class="f">Notes<input type="text" id="bd-note" maxlength="300"></label>
+        <div class="row"><button class="btn" type="submit">Save</button><span class="status" id="bd-status"></span></div>
+      </form>
+    </details>
+    <div class="tiles" id="body-tiles"></div>
+    <div class="flat"><h2>Log</h2><div id="body-list"></div></div>
+  </section>
+
+  <!-- PROGRESS -->
+  <section class="panel" id="p-progress" role="tabpanel" hidden>
+    <div class="card"><div class="row between"><h3>Score per round</h3><span class="muted mono" style="font-size:12px">strokes · lower is better</span></div><div class="chart" id="ch-score"></div></div>
+    <div class="card"><div class="row between"><h3>Weekly habit score</h3><span class="muted mono" style="font-size:12px">% of daily habits hit</span></div><div class="chart" id="ch-habits"></div></div>
+    <div class="card"><div class="row between"><h3>7-iron club speed</h3><span class="muted mono" style="font-size:12px">mph · SC4 tests</span></div><div class="chart" id="ch-speed"></div></div>
+    <div class="card"><div class="row between"><h3>Uric acid</h3><span class="muted mono" style="font-size:12px">mg/dL · target below 6</span></div><div class="chart" id="ch-uric"></div></div>
+  </section>
+</div>
+
+<script>
+const P = /*PROGRAM*/null;
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad = n => String(n).padStart(2, "0");
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const parseYmd = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+const fmtDate = s => parseYmd(s).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+const fmtDateLong = d => d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+const num = v => (v === "" || v === null || v === undefined || isNaN(Number(v))) ? null : Number(v);
+const thb = v => (v > 0 ? "+" : v < 0 ? "−" : "") + "฿" + Math.abs(v).toLocaleString("en-US");
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const START = parseYmd(P.start);
+
+function weekOf(d) {
+  const diff = Math.round((parseYmd(ymd(d)) - START) / 864e5);
+  return diff < 0 ? 0 : Math.floor(diff / 7) + 1;
+}
+function mondayOf(d) { const x = parseYmd(ymd(d)); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; }
+function phaseOf(w) { return P.phases.find(p => w >= p.weeks[0] && w <= p.weeks[1]) || null; }
+function weekInfo(w) { return P.weeks[w - 1] || null; }
+function sleepFor(w) { if (w < 1) return ["00:30", "09:00"]; const wi = weekInfo(w); return (wi ? wi.sleep : "23:30 / 07:30").split(" / "); }
+function drinkLimit(w) { const wi = weekInfo(w); return wi ? wi.drinks : (w < 1 ? 3 : 2); }
+
+const S = { db: null, daily: new Map(), rounds: [], tests: [], body: [], settings: {}, planWeek: null };
+const today = new Date();
+const todayStr = ymd(today);
+const curWeek = weekOf(today);
+
+/* ---------- tabs ---------- */
+function showTab(name) {
+  $$("nav.tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === name ? "true" : "false"));
+  $$("section.panel").forEach(p => p.hidden = p.id !== "p-" + name);
+  try { localStorage.setItem("rts-tab", name); } catch (e) {}
+  if (name === "progress") renderCharts();
+}
+$$("nav.tabs button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
+
+/* ---------- header ---------- */
+function headerText() {
+  let wk;
+  if (curWeek < 1) wk = `${P.week0.title} · Week 1 starts ${fmtDate(P.start)}`;
+  else if (curWeek > 12) wk = "12-week program complete";
+  else wk = `Week ${curWeek} of 12 · ${phaseOf(curWeek).name}`;
+  $("#hdr-sub").textContent = `${fmtDateLong(today)} · ${wk}`;
+  $("#today-phase").textContent = curWeek < 1 ? "Setup" : curWeek > 12 ? "Done" : `Week ${curWeek}`;
+}
+
+/* ---------- today ---------- */
+function itemHTML(i) {
+  const [text, q] = String(i).split("||");
+  return `<li>${esc(text)}${q ? ` <a class="yt" href="https://www.youtube.com/results?search_query=${encodeURIComponent(q)}" target="_blank" rel="noopener" aria-label="Video: ${esc(q)}">▶ Video</a>` : ""}</li>`;
+}
+function sessionHTML(key, label) {
+  const s = key && P.sessions[key];
+  if (!s) return `<div class="sess"><div class="when">${label}</div><div class="muted">Free</div></div>`;
+  return `<div class="sess"><div class="when">${label}</div><details class="acc"><summary><span>${esc(s.title)}${s.time ? ` <span class="muted mono" style="font-size:12px">· ${esc(s.time)}</span>` : ""}</span></summary><ul class="list">${s.items.map(itemHTML).join("")}</ul>${s.note ? `<p class="muted" style="margin:8px 0 0;font-size:13px">${esc(s.note)}</p>` : ""}</details></div>`;
+}
+function renderToday() {
+  const t = P.template[String(today.getDay())];
+  let html = "";
+  if (curWeek < 1) {
+    html += `<div class="flat"><span class="phase-tag">${esc(P.week0.title)} · ${esc(P.week0.dates)}</span><ul class="list" style="margin:0">${P.week0.items.map(i => `<li>${esc(i)}</li>`).join("")}</ul></div><hr class="rule">`;
+  } else if (curWeek <= 12) {
+    const wi = weekInfo(curWeek);
+    html += `<div class="flat"><span class="phase-tag">This week · ${esc(wi.focus)}</span><ul class="list" style="margin:0">${wi.tasks.map(i => `<li>${esc(i)}</li>`).join("")}</ul></div><hr class="rule">`;
+  }
+  html += sessionHTML(t.amKey, "AM") + sessionHTML(t.pmKey, "PM");
+  if (![t.amKey, t.pmKey].some(k => k === "mob" || (k || "").startsWith("pil"))) html += sessionHTML("mob", "Daily");
+  $("#today-sessions").innerHTML = html;
+}
+let ciDirty = false;
+function readCi() {
+  const energy = $('input[name=energy]:checked');
+  return { woke: $("#ci-woke").checked, trained: $("#ci-trained").checked, mobility: $("#ci-mob").checked, screens: $("#ci-screens").checked,
+    drinks: num($("#ci-drinks").value) ?? 0, practice: num($("#ci-practice").value) ?? 0, water: num($("#ci-water").value),
+    energy: energy ? Number(energy.value) : null, note: $("#ci-note").value.trim() };
+}
+function fillCi(d) {
+  $("#ci-woke").checked = !!d.woke; $("#ci-trained").checked = !!d.trained;
+  $("#ci-mob").checked = !!d.mobility; $("#ci-screens").checked = !!d.screens;
+  $("#ci-drinks").value = d.drinks ?? ""; $("#ci-practice").value = d.practice ?? ""; $("#ci-water").value = d.water ?? "";
+  $$('input[name=energy]').forEach(r => r.checked = String(d.energy) === r.value);
+  $("#ci-note").value = d.note ?? "";
+}
+function loadCheckin(date) {
+  fillCi(S.daily.get(date) || {}); ciDirty = false;
+  $("#ci-status").textContent = S.daily.has(date) ? "Saved earlier — edit and save again to update." : "";
+}
+$$("#p-today .card input").forEach(i => { if (i.id !== "ci-date") { i.addEventListener("input", () => { ciDirty = true; }); i.addEventListener("change", () => { ciDirty = true; }); } });
+function hits(d) {
+  if (!d) return 0;
+  return [d.woke, d.trained, d.mobility, d.screens, (d.drinks ?? 0) === 0].filter(Boolean).length;
+}
+function renderWeek() {
+  const mon = mondayOf(today);
+  const days = Array.from({ length: 7 }, (_, i) => { const x = new Date(mon); x.setDate(x.getDate() + i); return ymd(x); });
+  const logs = days.map(k => S.daily.get(k)).filter(Boolean);
+  const workouts = days.slice(0, 5).map(k => S.daily.get(k)).filter(d => d && d.trained).length;
+  const practice = logs.reduce((a, d) => a + (d.practice || 0), 0);
+  const drinkNights = logs.filter(d => (d.drinks || 0) > 0).length;
+  const screens = logs.filter(d => d.screens).length;
+  const lim = drinkLimit(curWeek);
+  const tile = (lbl, v, of, cls) => `<div class="tile"><span class="lbl">${lbl}</span><span class="val ${cls || ""}">${v}<small> / ${of}</small></span></div>`;
+  $("#week-tiles").innerHTML =
+    tile("Workouts (Mon–Fri)", workouts, 5) +
+    tile("Practice minutes", practice, 180) +
+    tile("Drinking nights", drinkNights, `${lim} max`) +
+    tile("Screens off on time", screens, 7);
+  // streak: consecutive days with ≥4 of 5 habits, counting back from today (or yesterday if today not logged)
+  let streak = 0; const x = new Date(today);
+  if (!S.daily.has(todayStr)) x.setDate(x.getDate() - 1);
+  while (true) { const d = S.daily.get(ymd(x)); if (d && hits(d) >= 4) { streak++; x.setDate(x.getDate() - 1); } else break; }
+  const sp = $("#streak-pill");
+  sp.className = "pill " + (streak >= 3 ? "good" : "");
+  sp.innerHTML = `<span class="dot"></span>${streak}-day streak`;
+  const [bed, wake] = sleepFor(curWeek);
+  $("#tonight").textContent = `Tonight: screens off by ${bed}. Wake target: ${wake}. Before a 06:30 tee: lights out by 22:00, no alcohol.`;
+  // never miss twice
+  const y = new Date(today); y.setDate(y.getDate() - 1);
+  const yd = S.daily.get(ymd(y)); const isTrainDay = d => d.getDay() >= 1 && d.getDay() <= 5;
+  const mb = $("#miss-banner");
+  if (isTrainDay(y) && isTrainDay(today) && yd && !yd.trained && !(S.daily.get(todayStr) || {}).trained) {
+    mb.hidden = false; mb.textContent = "Yesterday's session was missed. Never miss twice: do at least the 20-minute version today.";
+  } else if (lim && drinkNights >= lim) {
+    mb.hidden = false; mb.textContent = `You've used this week's ${lim} drinking nights. Alcohol-free from here to Sunday.`;
+  } else mb.hidden = true;
+}
+$("#ci-date").addEventListener("change", e => loadCheckin(e.target.value));
+$("#ci-save").addEventListener("click", async () => {
+  if (!S.db) return;
+  const date = $("#ci-date").value || todayStr;
+  const body = { date, ...readCi(), week: weekOf(parseYmd(date)), updated: new Date().toISOString() };
+  const btn = $("#ci-save"); btn.disabled = true; $("#ci-status").textContent = "Saving…";
+  try { await S.db.doc("daily/" + date).set(body); ciDirty = false; $("#ci-status").textContent = `Saved · ${hits(body)} of 5 habits hit`; }
+  catch (e) { $("#ci-status").textContent = saveError(e); }
+  btn.disabled = false;
+});
+function saveError(e) {
+  if (e && e.code === "quota_exceeded") return "Storage is full. Delete some old entries, then save again.";
+  if (e && e.code === "invalid_argument") return "You don't have permission to save here.";
+  return "Couldn't save. Check your connection and try again.";
+}
+
+/* ---------- plan ---------- */
+function renderPlan() {
+  const strip = $("#week-strip");
+  const sel = S.planWeek ?? Math.min(Math.max(curWeek, 0), 12);
+  let h = `<button data-w="0" aria-pressed="${sel === 0}" data-now="${curWeek < 1 ? 1 : 0}"><span>Setup</span><b>0</b></button>`;
+  for (let w = 1; w <= 12; w++) h += `<button data-w="${w}" aria-pressed="${sel === w}" data-now="${curWeek === w ? 1 : 0}"><span>Wk</span><b>${w}</b></button>`;
+  strip.innerHTML = h;
+  $$("button", strip).forEach(b => b.addEventListener("click", () => { S.planWeek = Number(b.dataset.w); renderPlan(); }));
+  const det = $("#week-detail");
+  if (sel === 0) {
+    det.innerHTML = `<div class="row between"><h3>${esc(P.week0.title)}</h3><span class="phase-tag">${esc(P.week0.dates)}</span></div><ul class="ruleslist">${P.week0.items.map(i => `<li>${esc(i)}</li>`).join("")}</ul>`;
+  } else {
+    const wi = weekInfo(sel), ph = phaseOf(sel);
+    const ws = new Date(START); ws.setDate(ws.getDate() + (sel - 1) * 7); const we = new Date(ws); we.setDate(we.getDate() + 6);
+    det.innerHTML = `<div class="row between"><h3>Week ${sel} · ${esc(wi.focus)}</h3><span class="phase-tag">${esc(ph.name)} · ${fmtDate(ymd(ws))}–${fmtDate(ymd(we))}</span></div>
+      <div class="row"><span class="pill">Bed / wake ${esc(wi.sleep)}</span><span class="pill">Drinking nights max ${wi.drinks}</span></div>
+      <ul class="ruleslist">${wi.tasks.map(i => `<li>${esc(i)}</li>`).join("")}</ul>`;
+  }
+  $("#phases").innerHTML = P.phases.map(p => `<div class="card"><span class="phase-tag">Weeks ${p.weeks[0]}–${p.weeks[1]}</span><h3 style="font-family:var(--f-display);font-weight:400;font-size:20px">${esc(p.name)}</h3><p style="margin:0" class="sub">${esc(p.goal)}</p><hr class="rule"><div style="font-size:14px;display:grid;gap:6px"><div><b>Body.</b> <span class="sub">${esc(p.body)}</span></div><div><b>Golf.</b> <span class="sub">${esc(p.golf)}</span></div><div><b>Habits.</b> <span class="sub">${esc(p.habits)}</span></div></div></div>`).join("");
+  $("#tpl tbody").innerHTML = [1, 2, 3, 4, 5, 6, 0].map(d => { const t = P.template[d]; return `<tr${d === today.getDay() ? ' style="background:var(--surface)"' : ""}><td class="mono">${DAYS[d]}</td><td>${esc(t.am)}</td><td>${esc(t.pm)}</td></tr>`; }).join("");
+  $("#sessions").innerHTML = Object.entries(P.sessions).map(([k, s]) => `<details class="acc"><summary><span>${esc(s.title)}${s.time ? ` <span class="muted mono" style="font-size:12px">· ${esc(s.time)}</span>` : ""}</span></summary><ul class="list">${s.items.map(itemHTML).join("")}</ul>${s.note ? `<p class="muted" style="margin:8px 0 0;font-size:13px">${esc(s.note)}</p>` : ""}</details>`).join("");
+  $("#tests-title").textContent = P.tests.title;
+  $("#tests-list").innerHTML = P.tests.items.map(i => `<li>${esc(i)}</li>`).join("");
+  $("#r-mind").innerHTML = P.mind.map(i => `<li>${esc(i)}</li>`).join("");
+  $("#r-money").innerHTML = P.money.map(i => `<li>${esc(i)}</li>`).join("");
+  $("#r-course").innerHTML = P.course.map(i => `<li>${esc(i)}</li>`).join("");
+  $("#c-course").innerHTML = P.course.map(i => `<li>${esc(i)}</li>`).join("");
+  $("#r-food").innerHTML = P.food.map(i => `<li>${esc(i)}</li>`).join("");
+  $("#r-sun").innerHTML = P.sun.map(i => `<li>${esc(i)}</li>`).join("");
+}
+$("#cap-save").addEventListener("click", async () => {
+  if (!S.db) return;
+  const v = num($("#cap").value);
+  $("#cap-status").textContent = "Saving…";
+  try { await S.db.doc("settings/main").set({ ...S.settings, cap: v }); $("#cap-status").textContent = "Saved"; }
+  catch (e) { $("#cap-status").textContent = saveError(e); }
+});
+
+/* ---------- generic delete with inline confirm ---------- */
+function wireDeletes(container, coll) {
+  $$("button[data-del]", container).forEach(b => b.addEventListener("click", async () => {
+    if (b.dataset.armed !== "1") { b.dataset.armed = "1"; b.textContent = "Confirm"; setTimeout(() => { b.dataset.armed = ""; b.textContent = "Delete"; }, 4000); return; }
+    b.disabled = true;
+    try { await S.db.doc(coll + "/" + b.dataset.del).delete(); } catch (e) { b.disabled = false; b.textContent = "Retry"; }
+  }));
+}
+const delBtn = id => S.db ? `<button class="btn small danger" data-del="${esc(id)}">Delete</button>` : "";
+
+/* ---------- rounds ---------- */
+function total(r) { return (r.front || 0) + (r.back || 0); }
+function renderRounds() {
+  const rs = S.rounds;
+  const last5 = rs.slice(0, 5);
+  const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+  const avgScore = avg(last5.map(total));
+  const diff = avg(rs.slice(0, 10).map(r => (r.back || 0) - (r.front || 0)));
+  const ym = todayStr.slice(0, 7);
+  const money = rs.filter(r => (r.date || "").startsWith(ym)).reduce((a, r) => a + (r.money || 0), 0);
+  const putts = avg(last5.filter(r => r.putts != null).map(r => r.putts));
+  const t = (lbl, v) => `<div class="tile"><span class="lbl">${lbl}</span><span class="val">${v}</span></div>`;
+  $("#round-tiles").innerHTML =
+    t("Average score · last 5", avgScore == null ? "—" : avgScore.toFixed(1)) +
+    t("Back 9 minus front 9", diff == null ? "—" : (diff > 0 ? "+" : "") + diff.toFixed(1)) +
+    t("Money this month", rs.length ? thb(money) : "—") +
+    t("Putts per round · last 5", putts == null ? "—" : putts.toFixed(1)) +
+    t("Approaches short / long · last 5", last5.some(r => r.apShort != null || r.apLong != null) ? `${last5.reduce((a, r) => a + (r.apShort || 0), 0)} / ${last5.reduce((a, r) => a + (r.apLong || 0), 0)}` : "—");
+  const el = $("#round-list");
+  if (!rs.length) { el.innerHTML = `<div class="empty">No rounds yet. After your next round, open “Log a round” above and fill in the scorecard. Front and back nine are kept apart so we can see where the back-nine fade starts.</div>`; return; }
+  el.innerHTML = `<div class="tablewrap"><table><thead><tr><th>Date</th><th>Course</th><th>Tee</th><th class="num">Out</th><th class="num">In</th><th class="num">Tot</th><th class="num">FW</th><th class="num">GIR</th><th class="num">Putts</th><th class="num">3P</th><th class="num">Pen</th><th class="num">Dbl+</th><th class="num">Short</th><th class="num">Long</th><th class="num">฿</th><th class="num">Sleep</th><th class="num">Drinks</th><th>Notes</th><th></th></tr></thead><tbody>${
+    rs.map(r => `<tr><td class="mono">${fmtDate(r.date)}</td><td>${esc(r.course || "")}</td><td class="mono">${esc(r.tee || "")}</td><td class="num">${r.front ?? ""}</td><td class="num">${r.back ?? ""}</td><td class="num tot">${total(r)}</td><td class="num">${r.fw ?? ""}</td><td class="num">${r.gir ?? ""}</td><td class="num">${r.putts ?? ""}</td><td class="num">${r.threePutts ?? ""}</td><td class="num">${r.penalties ?? ""}</td><td class="num">${r.doubles ?? ""}</td><td class="num">${r.apShort ?? ""}</td><td class="num">${r.apLong ?? ""}</td><td class="num" style="color:${(r.money || 0) < 0 ? "var(--bad)" : "var(--good)"}">${r.money != null ? thb(r.money) : ""}</td><td class="num">${r.sleep ?? ""}</td><td class="num">${r.drinks ?? ""}</td><td style="white-space:normal;min-width:160px">${esc(r.note || "")}</td><td>${delBtn(r.id)}</td></tr>`).join("")
+  }</tbody></table></div>`;
+  wireDeletes(el, "rounds");
+}
+$("#round-form").addEventListener("submit", async e => {
+  e.preventDefault(); if (!S.db) return;
+  const mind = $('input[name=rdmind]:checked');
+  const r = {
+    date: $("#rd-date").value, course: $("#rd-course").value.trim(), tee: $("#rd-tee").value,
+    sleep: num($("#rd-sleep").value), drinks: num($("#rd-drinks").value),
+    front: num($("#rd-front").value), back: num($("#rd-back").value), fw: num($("#rd-fw").value), gir: num($("#rd-gir").value),
+    putts: num($("#rd-putts").value), threePutts: num($("#rd-3p").value), penalties: num($("#rd-pen").value), doubles: num($("#rd-dbl").value), apShort: num($("#rd-short").value), apLong: num($("#rd-long").value),
+    money: num($("#rd-money").value), mind: mind ? Number(mind.value) : null, note: $("#rd-note").value.trim(), created: new Date().toISOString()
+  };
+  $("#rd-status").textContent = "Saving…";
+  try { await S.db.collection("rounds").add(r); $("#rd-status").textContent = `Saved · ${total(r)}`; e.target.reset(); $("#rd-date").value = todayStr; }
+  catch (err) { $("#rd-status").textContent = saveError(err); }
+});
+
+/* ---------- tests ---------- */
+function renderTests() {
+  const el = $("#test-list"); const ts = S.tests;
+  if (!ts.length) { el.innerHTML = `<div class="empty">No tests yet. Run Benchmark #1 in week 1 (see Plan → Benchmark test) and log the numbers here.</div>`; return; }
+  const v = x => x ?? "";
+  el.innerHTML = `<div class="tablewrap"><table><thead><tr><th>Date</th><th class="num">Drv mph</th><th class="num">Drv carry</th><th class="num">Drv dir °</th><th class="num">7i mph</th><th class="num">7i ball</th><th class="num">7i carry</th><th class="num">7i spread</th><th class="num">7i dir °</th><th class="num">Wedge /24</th><th class="num">6 ft /10</th><th class="num">Lag /10</th><th>Notes</th><th></th></tr></thead><tbody>${
+    ts.map(t => `<tr><td class="mono">${fmtDate(t.date)}</td><td class="num">${v(t.dSpeed)}</td><td class="num">${v(t.dCarry)}</td><td class="num">${v(t.dDir)}</td><td class="num">${v(t.iSpeed)}</td><td class="num">${v(t.iBall)}</td><td class="num">${v(t.iCarry)}</td><td class="num">${v(t.iSpread)}</td><td class="num">${v(t.iDir)}</td><td class="num">${v(t.wedge)}</td><td class="num">${v(t.p6)}</td><td class="num">${v(t.lag)}</td><td style="white-space:normal;min-width:160px">${esc(t.note || "")}</td><td>${delBtn(t.id)}</td></tr>`).join("")
+  }</tbody></table></div>`;
+  wireDeletes(el, "tests");
+}
+$("#test-form").addEventListener("submit", async e => {
+  e.preventDefault(); if (!S.db) return;
+  const t = { date: $("#ts-date").value, dSpeed: num($("#ts-dspeed").value), dCarry: num($("#ts-dcarry").value), dDir: num($("#ts-ddir").value),
+    iSpeed: num($("#ts-ispeed").value), iBall: num($("#ts-iball").value), iCarry: num($("#ts-icarry").value), iSpread: num($("#ts-ispread").value), iDir: num($("#ts-idir").value), wedge: num($("#ts-wedge").value),
+    p6: num($("#ts-p6").value), lag: num($("#ts-lag").value), note: $("#ts-note").value.trim(), created: new Date().toISOString() };
+  $("#ts-status").textContent = "Saving…";
+  try { await S.db.collection("tests").add(t); $("#ts-status").textContent = "Saved"; e.target.reset(); $("#ts-date").value = todayStr; }
+  catch (err) { $("#ts-status").textContent = saveError(err); }
+});
+
+/* ---------- body ---------- */
+function renderBody() {
+  const bs = S.body; const el = $("#body-list");
+  const latest = k => { const b = bs.find(x => x[k] != null); return b ? b[k] : null; };
+  const yr = new Date(today); yr.setFullYear(yr.getFullYear() - 1);
+  const flares = bs.filter(b => b.flare && parseYmd(b.date) >= yr).length;
+  const uric = latest("uric");
+  const t = (lbl, v, unit, pill) => `<div class="tile"><span class="lbl">${lbl}</span><span class="val">${v ?? "—"}${v != null && unit ? `<small> ${unit}</small>` : ""}</span>${pill || ""}</div>`;
+  const uricPill = uric == null ? "" : uric < 6 ? `<span class="pill good"><span class="dot"></span>On target</span>` : `<span class="pill bad"><span class="dot"></span>Above 6 — see doctor</span>`;
+  const waist = latest("waist");
+  const waistPill = waist == null ? "" : waist < 90 ? `<span class="pill good"><span class="dot"></span>Healthy range</span>` : `<span class="pill warn"><span class="dot"></span>Aim under 90</span>`;
+  $("#body-tiles").innerHTML = t("Weight", latest("weight"), "kg") + t("Waist", waist, "cm", waistPill) + t("Uric acid", uric, "mg/dL", uricPill) + t("Flares logged · 12 months", flares, "");
+  if (!bs.length) { el.innerHTML = `<div class="empty">Nothing logged yet. Add weight and waist every two weeks, and uric acid whenever you get a blood test.</div>`; return; }
+  el.innerHTML = `<div class="tablewrap"><table><thead><tr><th>Date</th><th class="num">Weight</th><th class="num">Waist</th><th class="num">Uric acid</th><th>Flare</th><th>Notes</th><th></th></tr></thead><tbody>${
+    bs.map(b => `<tr><td class="mono">${fmtDate(b.date)}</td><td class="num">${b.weight ?? ""}</td><td class="num">${b.waist ?? ""}</td><td class="num">${b.uric ?? ""}</td><td>${b.flare ? '<span class="pill bad"><span class="dot"></span>Flare</span>' : ""}</td><td style="white-space:normal;min-width:160px">${esc(b.note || "")}</td><td>${delBtn(b.id)}</td></tr>`).join("")
+  }</tbody></table></div>`;
+  wireDeletes(el, "body");
+}
+$("#body-form").addEventListener("submit", async e => {
+  e.preventDefault(); if (!S.db) return;
+  const b = { date: $("#bd-date").value, weight: num($("#bd-weight").value), waist: num($("#bd-waist").value), uric: num($("#bd-uric").value),
+    flare: $("#bd-flare").checked, note: $("#bd-note").value.trim(), created: new Date().toISOString() };
+  $("#bd-status").textContent = "Saving…";
+  try { await S.db.collection("body").add(b); $("#bd-status").textContent = "Saved"; e.target.reset(); $("#bd-date").value = todayStr; }
+  catch (err) { $("#bd-status").textContent = saveError(err); }
+});
+
+/* ---------- charts ---------- */
+function niceTicks(lo, hi, n = 4) {
+  const span = hi - lo || 1; const raw = span / n; const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map(s => s * mag).find(s => span / s <= n) || mag * 10;
+  const a = Math.floor(lo / step) * step, b = Math.ceil(hi / step) * step; const out = [];
+  for (let v = a; v <= b + 1e-9; v += step) out.push(+v.toFixed(6));
+  return out;
+}
+function emptyChart(el, msg) { el.innerHTML = `<div class="empty">${msg}</div>`; }
+function lineChart(el, pts, opt = {}) {
+  if (pts.length < 2) return emptyChart(el, opt.empty);
+  const W = Math.max(el.clientWidth || 600, 280), H = 190, L = 40, R = 44, T = 14, B = 26;
+  const ys = pts.map(p => p.y).concat(opt.target != null ? [opt.target] : []);
+  const ticks = niceTicks(Math.min(...ys), Math.max(...ys));
+  const y0 = ticks[0], y1 = ticks[ticks.length - 1];
+  const sx = i => L + (pts.length === 1 ? 0 : i * (W - L - R) / (pts.length - 1));
+  const sy = v => T + (1 - (v - y0) / (y1 - y0 || 1)) * (H - T - B);
+  const path = pts.map((p, i) => `${i ? "L" : "M"}${sx(i).toFixed(1)},${sy(p.y).toFixed(1)}`).join("");
+  const area = `${path}L${sx(pts.length - 1).toFixed(1)},${H - B}L${sx(0).toFixed(1)},${H - B}Z`;
+  const last = pts[pts.length - 1];
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opt.label || "")}">`;
+  s += `<g class="axis">${ticks.map(t => `<line class="gridline" x1="${L}" x2="${W - R}" y1="${sy(t)}" y2="${sy(t)}"/><text x="${L - 8}" y="${sy(t) + 4}" text-anchor="end">${t}</text>`).join("")}`;
+  s += `<text x="${sx(0)}" y="${H - 6}" text-anchor="start">${esc(pts[0].x)}</text><text x="${sx(pts.length - 1)}" y="${H - 6}" text-anchor="end">${esc(last.x)}</text></g>`;
+  if (opt.target != null) s += `<line class="target" x1="${L}" x2="${W - R}" y1="${sy(opt.target)}" y2="${sy(opt.target)}"/><text class="target-lbl" x="${W - R + 4}" y="${sy(opt.target) + 4}">${esc(opt.targetLabel || opt.target)}</text>`;
+  s += `<path d="${area}" fill="var(--series-fill)" stroke="none"/><path d="${path}" fill="none" stroke="var(--series)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  s += pts.map((p, i) => `<circle cx="${sx(i)}" cy="${sy(p.y)}" r="${i === pts.length - 1 ? 5 : 4}" fill="var(--series)" stroke="var(--raise)" stroke-width="2"/>`).join("");
+  s += `<text class="endlbl" x="${sx(pts.length - 1) + 9}" y="${sy(last.y) + 4}">${last.y}</text>`;
+  s += `<line class="xh" x1="0" x2="0" y1="${T}" y2="${H - B}" stroke="var(--muted)" stroke-width="1" visibility="hidden"/><rect class="hit" x="${L - 10}" y="0" width="${W - L - R + 20}" height="${H}" fill="transparent"/></svg><div class="tip" hidden></div>`;
+  el.innerHTML = s;
+  const svg = $("svg", el), tip = $(".tip", el), xh = $(".xh", el);
+  const move = ev => {
+    const r = svg.getBoundingClientRect(); const px = (ev.clientX - r.left) * (W / r.width);
+    let i = Math.round((px - L) / ((W - L - R) / (pts.length - 1))); i = Math.max(0, Math.min(pts.length - 1, i));
+    xh.setAttribute("x1", sx(i)); xh.setAttribute("x2", sx(i)); xh.setAttribute("visibility", "visible");
+    tip.hidden = false; tip.style.left = (sx(i) * r.width / W) + "px"; tip.style.top = (sy(pts[i].y) * r.height / H) + "px";
+    tip.innerHTML = `<span class="mono">${esc(pts[i].x)}</span> · <b>${pts[i].y}</b>${pts[i].extra ? ` <span class="muted">${esc(pts[i].extra)}</span>` : ""}`;
+  };
+  const hide = () => { tip.hidden = true; xh.setAttribute("visibility", "hidden"); };
+  const hit = $(".hit", el); hit.addEventListener("pointermove", move); hit.addEventListener("pointerdown", move); hit.addEventListener("pointerleave", hide);
+}
+function barChart(el, bars, opt = {}) {
+  if (!bars.length) return emptyChart(el, opt.empty);
+  const W = Math.max(el.clientWidth || 600, 280), H = 180, L = 40, R = 8, T = 12, B = 26;
+  const ticks = [0, 25, 50, 75, 100];
+  const sy = v => T + (1 - v / 100) * (H - T - B);
+  const slot = (W - L - R) / Math.max(bars.length, 6), bw = Math.min(36, slot - 2);
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opt.label || "")}"><g class="axis">${ticks.map(t => `<line class="gridline" x1="${L}" x2="${W - R}" y1="${sy(t)}" y2="${sy(t)}"/><text x="${L - 8}" y="${sy(t) + 4}" text-anchor="end">${t}</text>`).join("")}</g>`;
+  if (opt.target != null) s += `<line class="target" x1="${L}" x2="${W - R}" y1="${sy(opt.target)}" y2="${sy(opt.target)}"/>`;
+  bars.forEach((b, i) => {
+    const x = L + i * slot + (slot - bw) / 2, y = sy(b.y), h = H - B - y, r = Math.min(4, h);
+    const d = h <= 0 ? "" : `M${x},${H - B}V${y + r}Q${x},${y} ${x + r},${y}H${x + bw - r}Q${x + bw},${y} ${x + bw},${y + r}V${H - B}Z`;
+    s += `<g class="bar" data-i="${i}"><rect x="${x - 1}" y="${T}" width="${bw + 2}" height="${H - T - B}" fill="transparent"/>${d ? `<path d="${d}" fill="var(--series)"/>` : ""}<text class="axis" x="${x + bw / 2}" y="${H - 8}" text-anchor="middle" style="font:11px var(--f-data);fill:var(--muted)">${esc(b.x)}</text></g>`;
+  });
+  s += `</svg><div class="tip" hidden></div>`;
+  el.innerHTML = s;
+  const svg = $("svg", el), tip = $(".tip", el);
+  $$(".bar", el).forEach(g => {
+    const show = () => { const i = +g.dataset.i, b = bars[i], r = svg.getBoundingClientRect(); const x = L + i * slot + slot / 2;
+      tip.hidden = false; tip.style.left = (x * r.width / W) + "px"; tip.style.top = (sy(b.y) * r.height / H) + "px";
+      tip.innerHTML = `<span class="mono">${esc(b.label)}</span> · <b>${b.y}%</b> <span class="muted">${b.days} days logged</span>`; };
+    g.addEventListener("pointerenter", show); g.addEventListener("pointerdown", show); g.addEventListener("pointerleave", () => tip.hidden = true);
+  });
+}
+function renderCharts() {
+  if ($("#p-progress").hidden) return;
+  const rounds = [...S.rounds].reverse();
+  lineChart($("#ch-score"), rounds.map(r => ({ x: fmtDate(r.date), y: total(r), extra: `out ${r.front} · in ${r.back}` })), { label: "Score per round", empty: "Log two rounds to see your scoring trend." });
+  const weeks = new Map();
+  for (const [k, d] of S.daily) { const w = weekOf(parseYmd(k)); if (w < 1 || w > 12) continue; const e = weeks.get(w) || { h: 0, n: 0 }; e.h += hits(d); e.n++; weeks.set(w, e); }
+  const bars = [...weeks.entries()].sort((a, b) => a[0] - b[0]).map(([w, e]) => ({ x: "W" + w, label: "Week " + w, y: Math.round(e.h / (e.n * 5) * 100), days: e.n }));
+  barChart($("#ch-habits"), bars, { label: "Weekly habit score", target: 80, empty: "Daily check-ins from week 1 build this chart. Aim for 80% or more." });
+  const sp = [...S.tests].reverse().filter(t => t.iSpeed != null);
+  lineChart($("#ch-speed"), sp.map(t => ({ x: fmtDate(t.date), y: t.iSpeed, extra: t.iCarry ? `carry ${t.iCarry} yd` : "" })), { label: "7-iron club speed", empty: "Two SC4 tests with 7-iron club speed will show your trend here. Gym power work should push this up." });
+  const ur = [...S.body].reverse().filter(b => b.uric != null);
+  lineChart($("#ch-uric"), ur.map(b => ({ x: fmtDate(b.date), y: b.uric })), { label: "Uric acid", target: 6, targetLabel: "6.0", empty: "Log your next uric acid result in Body to start the trend. Target: below 6 mg/dL." });
+}
+let rz; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(renderCharts, 150); });
+
+/* ---------- coach note ---------- */
+function renderCoach(docs) {
+  const card = $("#coach-card");
+  const notes = docs.filter(d => d.date).sort((a, b) => b.date.localeCompare(a.date));
+  const n = notes.find(d => d.date === todayStr) || notes[0];
+  const yd = new Date(today); yd.setDate(yd.getDate() - 2);
+  if (!n || parseYmd(n.date) < parseYmd(ymd(yd))) { card.hidden = true; return; }
+  card.hidden = false;
+  $("#coach-date").textContent = n.date === todayStr ? "Today" : fmtDate(n.date);
+  $("#coach-title").textContent = n.title || "Today";
+  $("#coach-msg").textContent = n.message || "";
+  const al = Array.isArray(n.alerts) ? n.alerts.filter(Boolean) : [];
+  $("#coach-alerts").hidden = !al.length;
+  $("#coach-alerts").innerHTML = al.map(a => `<li>${esc(a)}</li>`).join("");
+}
+
+/* ---------- clubs ---------- */
+const CLUBS = [
+  { k: "D", n: "Driver" }, { k: "3W", n: "3-wood" }, { k: "5W", n: "5-wood" }, { k: "HY", n: "Hybrid" },
+  { k: "4i", n: "4-iron" }, { k: "5i", n: "5-iron" }, { k: "6i", n: "6-iron" }, { k: "7i", n: "7-iron" }, { k: "8i", n: "8-iron" }, { k: "9i", n: "9-iron" },
+  { k: "PW", n: "Pitching wedge", w: 1 }, { k: "50", n: "50° wedge", w: 1 }, { k: "54", n: "54° wedge", w: 1 }, { k: "58", n: "58° wedge", w: 1 }
+];
+S.yards = {}; let ydDirty = false;
+function renderYardTable(force) {
+  if (ydDirty && !force) return;
+  const c = S.yards || {};
+  const cell = (k, f, show) => show ? `<td class="num"><input type="number" id="yd-${k}-${f}" min="0" max="350" inputmode="numeric" value="${c[k] && c[k][f] != null ? c[k][f] : ""}" aria-label="${k} ${f}"></td>` : `<td class="num muted">·</td>`;
+  $("#yd-table tbody").innerHTML = CLUBS.map(cl => `<tr><td>${esc(cl.n)}</td>${cell(cl.k, "full", 1)}${cell(cl.k, "h1030", cl.w)}${cell(cl.k, "h9", cl.w)}</tr>`).join("");
+  $$("#yd-table input").forEach(i => i.addEventListener("input", () => { ydDirty = true; $("#yd-status").textContent = "Unsaved changes"; }));
+}
+function yardOptions() {
+  const c = S.yards || {}; const out = [];
+  CLUBS.forEach(cl => { const v = c[cl.k] || {};
+    if (v.full != null) out.push({ label: cl.n, carry: v.full, full: true });
+    if (cl.w && v.h1030 != null) out.push({ label: cl.n + " · 10:30 swing", carry: v.h1030 });
+    if (cl.w && v.h9 != null) out.push({ label: cl.n + " · 9:00 swing", carry: v.h9 }); });
+  return out.sort((a, b) => a.carry - b.carry);
+}
+function renderPicker() {
+  const out = $("#pk-out"); const d = num($("#pk-dist").value); const adj = Number($("#pk-adj").value);
+  const opts = yardOptions(); const fulls = opts.filter(o => o.full);
+  if (!fulls.length) { out.innerHTML = `<span class="muted">Add your average carries in “My yardages” below, then enter a distance.</span>`; return; }
+  if (d == null) { out.innerHTML = `<span class="muted">Enter the yards to the middle of the green.</span>`; return; }
+  let pick, below;
+  if (adj === 0) {
+    const i = opts.findIndex(o => o.carry >= d);
+    pick = i >= 0 ? opts[i] : null; below = i > 0 ? opts[i - 1] : (i < 0 ? opts[opts.length - 1] : null);
+  } else {
+    let i = fulls.findIndex(o => o.carry >= d); if (i < 0) i = fulls.length;
+    const j = i + adj; pick = j >= 0 && j < fulls.length ? fulls[j] : null; below = j - 1 >= 0 && j - 1 < fulls.length ? fulls[j - 1] : null;
+  }
+  if (!pick) { out.innerHTML = adj < 0 || d < opts[0].carry ? `<div class="club">${esc(opts[0].label)} <small>${opts[0].carry} yd</small></div><span class="muted">Shorter than your shortest saved swing. Add more wedge swing lengths.</span>` : `<div class="club">Lay up</div><span class="muted">${d} yd is beyond your average carry with any club. Play to your favourite wedge distance instead.</span>`; return; }
+  const spare = pick.carry - d;
+  out.innerHTML = `<span class="phase-tag">Play</span><div class="club">${esc(pick.label)} <small>${pick.carry} yd average</small></div>
+    <span style="font-size:14px">${adj === 0 ? (spare >= 0 ? `Reaches the middle with ${spare} yd to spare.` : "") : `Adjusted ${adj > 0 ? "+" : "−"}${Math.abs(adj)} club for conditions.`} Aim at the middle of the green.</span>
+    ${below && adj === 0 ? `<span class="muted" style="font-size:13px">${esc(below.label)} (${below.carry} yd) only gets there if you flush it. Don't plan on your best shot.</span>` : ""}`;
+}
+$("#pk-dist").addEventListener("input", renderPicker);
+$("#pk-adj").addEventListener("change", renderPicker);
+$("#yd-save").addEventListener("click", async () => {
+  if (!S.db) return;
+  const clubs = {};
+  CLUBS.forEach(cl => { const e = {}; ["full", "h1030", "h9"].forEach(f => { const i = $(`#yd-${cl.k}-${f}`); if (i) { const v = num(i.value); if (v != null) e[f] = v; } }); if (Object.keys(e).length) clubs[cl.k] = e; });
+  $("#yd-status").textContent = "Saving…";
+  try { await S.db.doc("settings/yardages").set({ clubs, updated: new Date().toISOString() }); ydDirty = false; S.yards = clubs; $("#yd-status").textContent = "Saved"; renderPicker(); }
+  catch (e) { $("#yd-status").textContent = saveError(e); }
+});
+
+/* ---------- boot ---------- */
+function renderAll() { renderWeek(); renderRounds(); renderTests(); renderBody(); renderCharts(); }
+function boot() {
+  headerText(); renderToday(); renderPlan();
+  ["#ci-date", "#rd-date", "#ts-date", "#bd-date"].forEach(id => $(id).value = todayStr);
+  loadCheckin(todayStr); renderAll(); renderYardTable(true); renderPicker();
+  let tab = "today"; try { tab = localStorage.getItem("rts-tab") || "today"; } catch (e) {}
+  if (location.hash && $(`nav.tabs button[data-tab="${location.hash.slice(1)}"]`)) tab = location.hash.slice(1);
+  showTab(tab);
+}
+window.claude?.hot?.snapshot?.(() => ({ ci: ciDirty ? { date: $("#ci-date").value, ...readCi() } : null }));
+function startApp(data) {
+  boot();
+  if (data && data.ci) { $("#ci-date").value = data.ci.date || todayStr; fillCi(data.ci); ciDirty = true; $("#ci-status").textContent = "Unsaved changes kept after the page updated. Press Save."; }
+}
+window.claude?.hot?.ready ? window.claude.hot.ready(startApp) : startApp(window.claude?.hot?.data ?? {});
+
+const setDisabled = off => $$("#ci-save,#cap-save,#yd-save,#round-form button,#test-form button,#body-form button").forEach(b => b.disabled = off);
+setDisabled(true);
+(async () => {
+  const db = window.claude && window.claude.use ? await window.claude.use("db") : null;
+  if (!db) { $("#dbnote").hidden = false; return; }
+  S.db = db; setDisabled(false); renderAll();
+  const byDateDesc = (a, b) => (b.date || "").localeCompare(a.date || "") || (b.created || "").localeCompare(a.created || "");
+  const sub = (coll, fn) => db.collection(coll).onSnapshot(fn, () => { $("#dbnote").hidden = false; $("#dbnote").textContent = "Lost the connection to your saved data. Reload the page to reconnect."; });
+  let firstDaily = true;
+  sub("daily", snap => {
+    S.daily = new Map(snap.docs.map(d => [d.id, d.data()]));
+    if (firstDaily) { firstDaily = false; if (!ciDirty) loadCheckin($("#ci-date").value); }
+    renderWeek(); renderCharts();
+  });
+  sub("rounds", snap => { S.rounds = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort(byDateDesc); renderRounds(); renderCharts(); });
+  sub("tests", snap => { S.tests = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort(byDateDesc); renderTests(); renderCharts(); });
+  sub("body", snap => { S.body = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort(byDateDesc); renderBody(); renderCharts(); });
+  sub("coach", snap => renderCoach(snap.docs.map(d => d.data() || {})));
+  db.doc("settings/yardages").onSnapshot(s => { S.yards = s.exists ? ((s.data() || {}).clubs || {}) : {}; renderYardTable(); renderPicker(); });
+  db.doc("settings/main").onSnapshot(s => { S.settings = s.exists ? { ...s.data() } : {}; if (document.activeElement !== $("#cap")) $("#cap").value = S.settings.cap ?? ""; });
+})();
+</script>
