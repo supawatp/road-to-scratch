@@ -1,0 +1,6 @@
+# Copy to .dev.vars for `npm run dev` (local only - .dev.vars is git-ignored). Never commit real values.
+LINE_CHANNEL_SECRET=
+LINE_CHANNEL_ACCESS_TOKEN=
+OWNER_LINE_USER_ID=
+API_TOKEN=
+ANTHROPIC_API_KEY=

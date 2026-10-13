@@ -1,0 +1,22 @@
+{
+  "name": "road-to-scratch",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Road to Scratch LINE coach: Cloudflare Worker + D1 + dashboard",
+  "engines": { "node": ">=22.5" },
+  "scripts": {
+    "build": "node scripts/build-dashboard.mjs",
+    "test": "node --test --disable-warning=ExperimentalWarning \"test/*.test.js\"",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:init": "wrangler d1 execute road-to-scratch --remote --file=schema.sql",
+    "db:init:local": "wrangler d1 execute road-to-scratch --local --file=schema.sql"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.133.0"
+  },
+  "devDependencies": {
+    "wrangler": "^4.140.0"
+  }
+}

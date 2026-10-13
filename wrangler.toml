@@ -1,0 +1,34 @@
+name = "road-to-scratch"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Builds the dashboard (source/template.html + program.json + REST shim) before every deploy/dev.
+[build]
+command = "npm run build"
+
+[triggers]
+# Bangkok is UTC+7 all year (no DST).
+#   08:45 BKK daily   -> morning plan
+#   21:30 BKK daily   -> evening check-in
+#   20:00 BKK Sunday  -> weekly summary (+ Claude review if ANTHROPIC_API_KEY is set)
+crons = ["45 1 * * *", "30 14 * * *", "0 13 * * SUN"]
+
+[vars]
+TZ = "Asia/Bangkok"
+# Stop sending pushes once this many have gone out this calendar month (LINE free quota guard).
+PUSH_MONTHLY_LIMIT = "250"
+# Optional: full https URL of the dashboard. If empty, the Worker learns it from the first webhook call.
+PUBLIC_URL = ""
+
+# Secrets (set in the Cloudflare dashboard or with `wrangler secret put`, never in this file):
+#   LINE_CHANNEL_SECRET, LINE_CHANNEL_ACCESS_TOKEN, OWNER_LINE_USER_ID, API_TOKEN, ANTHROPIC_API_KEY (optional)
+
+[[d1_databases]]
+binding = "DB"
+database_name = "road-to-scratch"
+# Paste the Database ID from Workers & Pages > D1 > road-to-scratch here (an identifier, not a secret).
+database_id = "00000000-0000-0000-0000-000000000000"
+
+[observability]
+enabled = true
