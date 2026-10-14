@@ -68,7 +68,8 @@ Shortcut, not listed in `help`: `round 42 45 putts 33 pen 1 dbl 2 short 4 long 0
 
 Upload CSV exports from the SC4 app (Stats → Practice / Target table) on the dashboard's **SC4** tab. Re-uploading a file adds nothing new.
 
-- **Yardage** = mean of the middle 60% of each club's last 40 shots (the program's "ignore the best 2 and worst 2 of 10" rule). Usual range = middle half of shots.
+- **Outliers first**: every metric (carry, direction, speeds, spin) drops extreme outliers before anything is calculated, using Tukey's fences (values more than 1.5 × the interquartile range outside the middle half). Fewer than 5 values are used as they are.
+- **Yardage** = average carry of each club's last 40 shots after outlier removal; **usual range** = average ± 1 standard deviation (about 2 in 3 shots). Session trends use the same average and SD per practice day.
 - **Swing length**: wedge shots on Auto are split into full and 3/4 swings when club speed shows two clear groups (6+ mph apart). Otherwise they count as full. Choose Full or 3/4 on upload, or re-label a session in the Sessions table.
 - **Club picker**: SC4 numbers are used once a club has 10 full swings (6 for 3/4). Saved yardages fill in the rest, e.g. the driver.
 - **Insights**: overlapping clubs, scoring-zone gaps, one-sided misses, drift and consistency changes, slower practice days linked to that day's check-in, thin or old data.

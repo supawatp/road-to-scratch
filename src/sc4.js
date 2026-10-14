@@ -112,16 +112,21 @@ export function quantile(xs, p) {
   const k = (s.length - 1) * p, f = Math.floor(k), c = Math.min(f + 1, s.length - 1);
   return s[f] + (s[c] - s[f]) * (k - f);
 }
-/** Mean of the middle 60%: the plan's "ignore the best 2 and worst 2 of 10, average the middle 6". */
-export function trimmedMean(xs, cut = 0.2) {
-  if (xs.length < 5) return mean(xs);
-  const s = [...xs].sort((a, b) => a - b);
-  const k = Math.floor(s.length * cut);
-  return mean(s.slice(k, s.length - k));
+/**
+ * Removes extreme outliers (Tukey's fences): values more than 1.5 x the interquartile range
+ * below the 25th or above the 75th percentile. Mishits go; normal variation stays.
+ * Fewer than 5 values are returned unchanged.
+ */
+export function withoutOutliers(xs) {
+  if (xs.length < 5) return xs;
+  const q1 = quantile(xs, 0.25), q3 = quantile(xs, 0.75), k = 1.5 * (q3 - q1);
+  return xs.filter(v => v >= q1 - k && v <= q3 + k);
 }
-const r0 = v => (v == null ? null : Math.round(v));
-const r1 = v => (v == null ? null : Math.round(v * 10) / 10);
-const r2 = v => (v == null ? null : Math.round(v * 100) / 100);
+/** Values of `k` with outliers removed - every average and standard deviation is computed on these. */
+const clean = (xs, k) => withoutOutliers(vals(xs, k));
+const r0 = v => (v == null ? null : Math.round(v) + 0); // + 0 turns -0 into 0
+const r1 = v => (v == null ? null : Math.round(v * 10) / 10 + 0);
+const r2 = v => (v == null ? null : Math.round(v * 100) / 100 + 0);
 
 // ---- swing length -----------------------------------------------------------------------------
 
@@ -183,21 +188,23 @@ export const CLUB_NAMES = {
 export const clubName = k => CLUB_NAMES[k] || k;
 const byDate = (a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
 
+/** Per-metric average and standard deviation after removing that metric's outliers. Usual range = average ± 1 SD. */
 function summarize(ss) {
-  const carry = vals(ss, "carry"), side = vals(ss, "side");
+  const carry = clean(ss, "carry"), side = clean(ss, "side");
+  const m = mean(carry), d = sd(carry) ?? 0;
   return {
-    n: ss.length,
-    carry: r0(trimmedMean(carry)), lo: r0(quantile(carry, 0.25)), hi: r0(quantile(carry, 0.75)),
+    n: ss.length, outliers: vals(ss, "carry").length - carry.length,
+    carry: r0(m), carrySd: r1(sd(carry)), lo: r0(m - d), hi: r0(m + d),
     side: r1(mean(side)), sideSpread: r1(sd(side)),
     right10: side.length ? r0((side.filter(v => v > 10).length / side.length) * 100) : null,
     left10: side.length ? r0((side.filter(v => v < -10).length / side.length) * 100) : null,
-    clubSpeed: r1(mean(vals(ss, "clubSpeed"))), ballSpeed: r1(mean(vals(ss, "ballSpeed"))), smash: r2(mean(vals(ss, "smash"))),
-    launch: r1(mean(vals(ss, "launch"))), launchDir: r1(mean(vals(ss, "launchDir"))), spin: r0(mean(vals(ss, "spin"))),
-    spinAxis: r1(mean(vals(ss, "spinAxis"))),
+    clubSpeed: r1(mean(clean(ss, "clubSpeed"))), ballSpeed: r1(mean(clean(ss, "ballSpeed"))), smash: r2(mean(clean(ss, "smash"))),
+    launch: r1(mean(clean(ss, "launch"))), launchDir: r1(mean(clean(ss, "launchDir"))), spin: r0(mean(clean(ss, "spin"))),
+    spinAxis: r1(mean(clean(ss, "spinAxis"))),
   };
 }
 
-/** Yardage per club and swing from each group's most recent `recent` shots, longest first. */
+/** Yardage per club and swing from each group's most recent `recent` shots (outliers removed), longest first. */
 export function clubStats(classified, recent = 40) {
   const groups = {};
   for (const s of classified) (groups[`${s.club}|${s.swing}`] ||= []).push(s);
@@ -208,7 +215,7 @@ export function clubStats(classified, recent = 40) {
   }).filter(s => s.carry != null).sort((a, b) => b.carry - a.carry);
 }
 
-/** One row per club per practice day (full swings only for the metrics; 3/4 swings counted). */
+/** One row per club per practice day (full swings only for the metrics; 3/4 swings counted). Outliers removed per metric. */
 export function sessionsOf(classified) {
   const groups = {};
   for (const s of classified) (groups[`${s.club}|${s.date}`] ||= []).push(s);
@@ -216,13 +223,13 @@ export function sessionsOf(classified) {
     const [club, date] = k.split("|");
     const full = ss.filter(s => s.swing === "full");
     const m = full.length ? full : ss;
-    const carry = vals(m, "carry"), side = vals(m, "side");
+    const carry = clean(m, "carry"), side = clean(m, "side");
     const tags = [...new Set(ss.map(s => s.tag))];
     return {
       club, date, n: ss.length, n34: ss.length - full.length, tag: tags.length === 1 ? tags[0] : "mixed",
-      carry: r0(quantile(carry, 0.5)), carrySpread: r1(sd(carry)), side: r1(mean(side)),
+      carry: r0(mean(carry)), carrySpread: r1(sd(carry)), side: r1(mean(side)),
       offline10: side.length ? r0((side.filter(v => Math.abs(v) > 10).length / side.length) * 100) : null,
-      clubSpeed: r1(mean(vals(m, "clubSpeed"))), smash: r2(mean(vals(m, "smash"))),
+      clubSpeed: r1(mean(clean(m, "clubSpeed"))), smash: r2(mean(clean(m, "smash"))),
     };
   }).sort((a, b) => byDate(a, b) || a.club.localeCompare(b.club));
 }
@@ -293,8 +300,10 @@ export function insightsOf({ stats, sessions, options, manual = {}, daily = new 
   // 1. Overlapping clubs
   for (const g of gapsOf(stats).filter(g => g.flag === "overlap")) {
     const a = full.find(s => s.club === g.long), b = full.find(s => s.club === g.short);
-    const straighter = Math.abs(a.side ?? 0) <= Math.abs(b.side ?? 0) ? a : b;
-    out.push({ level: "warn", kind: "overlap", text: `${a.club} (${a.carry} yd) and ${b.club} (${b.carry} yd) carry almost the same. For that distance, take the ${straighter.club}: it finishes closer to the line. Ask your coach about the ${straighter === a ? b.club : a.club} strike.` });
+    // Tighter group = smaller combined spread of distance and direction (both after outlier removal).
+    const spread = c => Math.hypot(c.carrySd ?? 0, c.sideSpread ?? 0);
+    const [best, other] = spread(a) <= spread(b) ? [a, b] : [b, a];
+    out.push({ level: "warn", kind: "overlap", text: `${a.club} (${a.carry} yd) and ${b.club} (${b.carry} yd) carry almost the same. For that distance, take the ${best.club}: its shots land in a tighter group (±${Math.round(best.carrySd ?? 0)} yd long/short, against ±${Math.round(other.carrySd ?? 0)} for the ${other.club}). Ask your coach about the ${other.club} strike.` });
   }
 
   // 2. Scoring-zone distances nothing covers (wedges and short irons, any swing length)
@@ -340,8 +349,8 @@ export function insightsOf({ stats, sessions, options, manual = {}, daily = new 
     }
     if (last.carrySpread != null && pSpread != null) {
       const d = last.carrySpread - pSpread;
-      if (d >= 3) trends.push({ score: d, level: "warn", kind: "trend", text: `${club} distance control slipped: carry spread ${Math.round(last.carrySpread)} yd on ${fmtDay(last.date)}, against ${Math.round(pSpread)} before.` });
-      if (d <= -3) trends.push({ score: -d, level: "good", kind: "trend", text: `${club} distances are tighter: carry spread ${Math.round(last.carrySpread)} yd on ${fmtDay(last.date)}, against ${Math.round(pSpread)} before.` });
+      if (d >= 3) trends.push({ score: d, level: "warn", kind: "trend", text: `${club} distance control slipped: carry SD ${Math.round(last.carrySpread)} yd on ${fmtDay(last.date)}, against ${Math.round(pSpread)} before.` });
+      if (d <= -3) trends.push({ score: -d, level: "good", kind: "trend", text: `${club} distances are tighter: carry SD ${Math.round(last.carrySpread)} yd on ${fmtDay(last.date)}, against ${Math.round(pSpread)} before.` });
     }
   }
   out.push(...trends.sort((a, b) => b.score - a.score).slice(0, 3).map(({ score, ...t }) => t));

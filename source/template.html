@@ -274,7 +274,7 @@ a.yt:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
     </div>
     <div class="card">
       <div class="row between"><h2>My yardages</h2><span class="muted mono" style="font-size:12px">average carry · yards</span></div>
-      <p class="muted" style="margin:0;font-size:13px">The SC4 column fills in from your uploads (middle 60% of the last 40 shots: the "ignore the best 2 and worst 2" rule). It wins over a saved number once a club has 10 shots. Type yardages for clubs the SC4 hasn't measured, like the driver on the course.</p>
+      <p class="muted" style="margin:0;font-size:13px">The SC4 column fills in from your uploads: each club's last 40 shots, extreme outliers removed, then averaged. It wins over a saved number once a club has 10 shots. Type yardages for clubs the SC4 hasn't measured, like the driver on the course.</p>
       <div class="tablewrap"><table id="yd-table"><thead><tr><th>Club</th><th class="num">SC4</th><th class="num">Full</th><th class="num">3/4</th><th class="num">1/2</th></tr></thead><tbody></tbody></table></div>
       <div class="row"><button class="btn" id="yd-save">Save yardages</button><span class="status" id="yd-status"></span></div>
     </div>
@@ -284,18 +284,19 @@ a.yt:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   <!-- SC4 -->
   <section class="panel" id="p-sc4" role="tabpanel" hidden>
     <div class="card">
+      <p class="muted" style="margin:0;font-size:13px;order:9">All numbers drop extreme outliers first (shots far outside the middle half), then use the average and standard deviation. Shots: the last 40 per club; "−3" means 3 outliers left out.</p>
       <div class="row between"><h2>What's going on</h2><span class="muted mono" style="font-size:12px" id="sc4-meta"></span></div>
       <ul class="insights" id="sc4-insights"></ul>
     </div>
     <div class="card">
-      <div class="row between"><h2>Distances</h2><span class="muted mono" style="font-size:12px">carry · yd · bar = middle half of shots</span></div>
+      <div class="row between"><h2>Distances</h2><span class="muted mono" style="font-size:12px">carry · yd · bar = average ± 1 SD (about 2 in 3 shots)</span></div>
       <div class="chart" id="sc4-range"></div>
-      <div class="tablewrap"><table id="sc4-clubs"><thead><tr><th>Club</th><th class="num">Carry</th><th class="num">Usual</th><th class="num">Miss</th><th class="num">Speed</th><th class="num">Smash</th><th class="num">Shots</th></tr></thead><tbody></tbody></table></div>
+      <div class="tablewrap"><table id="sc4-clubs"><thead><tr><th>Club</th><th class="num">Carry</th><th class="num">± SD</th><th class="num">Usual</th><th class="num">Miss</th><th class="num">Speed</th><th class="num">Smash</th><th class="num">Shots</th></tr></thead><tbody></tbody></table></div>
     </div>
     <div class="card">
       <div class="row between"><h2>Trends</h2><label class="f" style="width:150px"><span class="muted">Club</span><select id="sc4-club"></select></label></div>
-      <div class="flat"><div class="row between"><h3>Carry</h3><span class="muted mono" style="font-size:12px">yd · median per session</span></div><div class="chart" id="ch-sc4-carry"></div></div>
-      <div class="flat"><div class="row between"><h3>Distance control</h3><span class="muted mono" style="font-size:12px">carry spread · yd · lower is better</span></div><div class="chart" id="ch-sc4-spread"></div></div>
+      <div class="flat"><div class="row between"><h3>Carry</h3><span class="muted mono" style="font-size:12px">yd · average per session</span></div><div class="chart" id="ch-sc4-carry"></div></div>
+      <div class="flat"><div class="row between"><h3>Distance control</h3><span class="muted mono" style="font-size:12px">carry SD · yd · lower is better</span></div><div class="chart" id="ch-sc4-spread"></div></div>
       <div class="flat"><div class="row between"><h3>Direction</h3><span class="muted mono" style="font-size:12px">avg yd off line · + right, − left</span></div><div class="chart" id="ch-sc4-side"></div></div>
       <div class="flat"><div class="row between"><h3>Club speed</h3><span class="muted mono" style="font-size:12px">mph</span></div><div class="chart" id="ch-sc4-speed"></div></div>
     </div>
@@ -839,7 +840,7 @@ function renderSc4() {
   $("#sc4-insights").innerHTML = d.insights.length ? d.insights.map(i => `<li class="${esc(i.level)}">${esc(i.text)}</li>`).join("") : `<li>Nothing stands out. Keep uploading sessions.</li>`;
   if ($("#p-sc4").hidden) return;
   rangeChart($("#sc4-range"), d.clubs);
-  $("#sc4-clubs tbody").innerHTML = d.clubs.map(c => `<tr><td>${esc(clubLabel(c.club))}${c.swing === "full" ? "" : " · 3/4"}</td><td class="num tot">${c.carry}</td><td class="num">${c.lo}–${c.hi}</td><td class="num">${missText(c.side)}</td><td class="num">${c.clubSpeed ?? ""}</td><td class="num">${c.smash ?? ""}</td><td class="num">${c.n}${c.n < 10 ? " (few)" : ""}</td></tr>`).join("");
+  $("#sc4-clubs tbody").innerHTML = d.clubs.map(c => `<tr><td>${esc(clubLabel(c.club))}${c.swing === "full" ? "" : " · 3/4"}</td><td class="num tot">${c.carry}</td><td class="num">${c.carrySd ?? ""}</td><td class="num">${c.lo}–${c.hi}</td><td class="num">${missText(c.side)}</td><td class="num">${c.clubSpeed ?? ""}</td><td class="num">${c.smash ?? ""}</td><td class="num">${c.n}${c.outliers ? ` <span class="muted">−${c.outliers}</span>` : ""}${c.n < 10 ? " (few)" : ""}</td></tr>`).join("");
   const clubs = [...new Set(d.sessions.map(x => x.club))].sort((a, b) => { const ca = d.clubs.find(c => c.club === a), cb = d.clubs.find(c => c.club === b); return (cb ? cb.carry : 0) - (ca ? ca.carry : 0); });
   const sel = $("#sc4-club"), cur = sel.value || (clubs.includes("7i") ? "7i" : clubs[0]);
   sel.innerHTML = clubs.map(c => `<option value="${esc(c)}"${c === cur ? " selected" : ""}>${esc(clubLabel(c))}</option>`).join("");

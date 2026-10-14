@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  parseSc4Csv, normalizeClub, speedSplit, classifySwings, trimmedMean, clubStats, sessionsOf, gapsOf, clubOptions, pickClub, insightsOf, analyze,
+  parseSc4Csv, normalizeClub, speedSplit, classifySwings, withoutOutliers, clubStats, sessionsOf, gapsOf, clubOptions, pickClub, insightsOf, analyze,
 } from "../src/sc4.js";
 import { makeApp, makeEnv, webhookRequest, textEvent, TOKEN } from "./helpers.js";
 import { CRON } from "../src/jobs.js";
@@ -40,8 +40,23 @@ test("club names are normalised", () => {
   assert.deepEqual(["7i - ", "Dr", "Driver", "4H", "4 Hybrid", "sw", "PW - ", "3W"].map(normalizeClub), ["7i", "D", "D", "4H", "4H", "SW", "PW", "3W"]);
 });
 
-test("trimmed mean drops the best and worst 20% (the 'middle 6 of 10' rule)", () => {
-  assert.equal(trimmedMean([100, 140, 141, 142, 143, 144, 145, 146, 147, 190]), 143.5); // mean of 141..146
+test("outliers are removed with Tukey's fences before averaging; normal spread is kept", () => {
+  assert.deepEqual(withoutOutliers([100, 140, 141, 142, 143, 144, 145, 146, 147, 190]), [140, 141, 142, 143, 144, 145, 146, 147]);
+  const normal = [130, 133, 136, 139, 142, 145, 148, 151];
+  assert.deepEqual(withoutOutliers(normal), normal, "no outliers -> nothing removed");
+  assert.deepEqual(withoutOutliers([100, 150, 200]), [100, 150, 200], "fewer than 5 values are used as they are");
+});
+
+test("yardage = average ± 1 SD after removing mishits, and the mishit count is reported", () => {
+  const shots = [...series("7i", "2026-09-01", 20, 146, 0, 80), { club: "7i", date: "2026-09-01", carry: 95, side: 40, speed: 80 }]
+    .map(s => ({ ...s, clubSpeed: s.speed, swing: "auto" }));
+  const [seven] = clubStats(classifySwings(shots).shots);
+  assert.equal(seven.n, 21);
+  assert.equal(seven.outliers, 1, "the 95-yd thin shot");
+  assert.equal(seven.carry, 146);
+  assert.equal(seven.carrySd, 2.8);
+  assert.deepEqual([seven.lo, seven.hi], [143, 149]);
+  assert.equal(seven.side, 0, "the 40-yd slice does not pull the direction average");
 });
 
 test("speedSplit separates full and 3/4 swings only when there are clearly two speeds", () => {
@@ -96,7 +111,7 @@ test("insights: overlap, one-sided misses, drift, slower speed linked to the che
   const daily = new Map([["2026-09-21", { energy: 2 }], ["2026-09-20", { drinks: 3 }]]);
   const a = analyze(rows, { daily, today: "2026-10-14", recent: 20, manual: { "7i": { full: 152 } } });
   const text = a.insights.map(i => `[${i.level}] ${i.text}`).join("\n");
-  assert.match(text, /\[warn\] 6i \(148 yd\) and 7i \(146 yd\) carry almost the same/);
+  assert.match(text, /\[warn\] 6i \(148 yd\) and 7i \(146 yd\) carry almost the same\. For that distance, take the (6i|7i): its shots land in a tighter group/);
   assert.match(text, /\[warn\] Most misses go right: .*8i/);
   assert.match(text, /\[warn\] 8i is drifting right/);
   assert.match(text, /\[warn\] Club speed was down \d mph on Mon 21 Sep \(8i, 9i\).*energy 2\/5 that day, 3 drinks the night before/);
@@ -187,7 +202,7 @@ test("LINE: club 145 picks from SC4 data and explains the aim", async () => {
   await call(app, env, "/api/v1/sc4/import", { method: "POST", body: CSV_7I, type: "text/csv" });
   await send("club 140");
   const t = line.replies().at(-1).body.messages[0].text;
-  assert.match(t, /^140 yd → 7-iron\nCarry 146 yd, usually \d+–\d+ \(SC4, last 20 shots\)\nAim at the middle of the green\.\n8-iron \(\d+\) only gets there if you flush it\./);
+  assert.match(t, /^140 yd → 7-iron\nCarry 146 yd, usually \d+–\d+ \(SC4 average ± 1 SD, last 20 shots\)\nAim at the middle of the green\.\n8-iron \(\d+\) only gets there if you flush it\./);
   await send("club 125");
   assert.match(line.replies().at(-1).body.messages[0].text, /8-iron[\s\S]*Misses 1\d yd right on average: aim at the left half/);
   await send("club 125 +1");

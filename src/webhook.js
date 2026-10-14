@@ -196,7 +196,7 @@ export async function clubReply(ctx, text) {
   const p = r.pick;
   const lines = [`${d} yd${adj ? ` (${adj > 0 ? "+" : ""}${adj} club)` : ""} → ${p.label}`];
   lines.push(p.source === "sc4"
-    ? `Carry ${p.carry} yd, usually ${p.lo}–${p.hi} (SC4, last ${p.n} shots)`
+    ? `Carry ${p.carry} yd, usually ${p.lo}–${p.hi} (SC4 average ± 1 SD, last ${p.n} shots)`
     : `Carry ${p.carry} yd (your saved yardage)`);
   if (p.side != null && Math.abs(p.side) >= 5) lines.push(`Misses ${Math.round(Math.abs(p.side))} yd ${p.side > 0 ? "right" : "left"} on average: aim at the ${p.side > 0 ? "left" : "right"} half of the green.`);
   else lines.push("Aim at the middle of the green.");
