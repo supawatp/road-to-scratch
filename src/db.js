@@ -21,10 +21,16 @@ export const COLLECTIONS = {
   body: { pk: "id", cols: ["id", "date", "weight", "waist", "uric", "flare", "note", "created"], order: "date DESC, created DESC" },
   coach: { pk: "date", cols: ["date", "title", "message", "alerts", "created"], json: ["alerts"], order: "date DESC" },
   settings: { pk: "key", cols: ["key", "json"], order: "key" },
+  shots: {
+    pk: "id",
+    cols: ["id", "date", "club", "mode", "swing", "no", "carry", "total", "side", "sideTotal", "toTarget", "clubSpeed", "ballSpeed",
+      "launch", "launchDir", "smash", "apex", "spin", "spinAxis", "backSpin", "sideSpin", "created"],
+    order: "date DESC, club",
+  },
 };
 
 // Settings that the Worker manages internally and the public API must not expose.
-const INTERNAL_SETTINGS = new Set(["push_count", "origin"]);
+const INTERNAL_SETTINGS = new Set(["push_count", "origin", "sc4_stats"]);
 
 export const isCollection = name => Object.prototype.hasOwnProperty.call(COLLECTIONS, name);
 

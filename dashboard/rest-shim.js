@@ -92,6 +92,16 @@
   var db = {
     collection: function (name) { return collectionRef(name); },
     doc: function (path) { var p = parsePath(path); return docRef(p.coll, p.id); },
+    // Plain API call for things outside the document model (SC4 upload, session tags).
+    // body: string (sent as text/csv) or object (sent as JSON). Refreshes listeners afterwards.
+    rpc: function (method, path, body) {
+      if (typeof body !== "string") return after(request(method, path, body));
+      return after(fetch(API + path, { method: method, credentials: "same-origin", headers: { "Content-Type": "text/csv" }, body: body })
+        .then(function (r) {
+          if (r.status === 401) { location.href = "/login"; throw apiError("unauthenticated"); }
+          return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) throw apiError(j.code || "unavailable", j.error); return j; });
+        }));
+    },
   };
 
   window.claude = window.claude || {};

@@ -4,6 +4,7 @@ import { DEFAULT_TZ, localDate, addDays, mondayOf, monthKey } from "./dates.js";
 import { getSetting, setSetting, listDocs } from "./db.js";
 import { LineClient } from "./line.js";
 import { hits } from "./checkin.js";
+import { getSc4 } from "./sc4store.js";
 
 export function makeContext(env, { program, fetchImpl, now } = {}) {
   const tz = env.TZ || DEFAULT_TZ;
@@ -83,6 +84,7 @@ export async function buildSummary(ctx, days = 14) {
     listDocs(ctx.db, "body", { since: from, until: to }),
   ]);
   const plan = dayPlan(program, to);
+  const sc4 = await getSc4(ctx).catch(e => { console.error("sc4 summary", e); return null; });
   const strip = o => Object.fromEntries(Object.entries(o).filter(([k, v]) => v != null && v !== "" && k !== "id" && k !== "created" && k !== "updated"));
   return {
     generated: ctx.now().toISOString(), tz: ctx.tz, today: to, week: plan.week,
@@ -91,5 +93,11 @@ export async function buildSummary(ctx, days = 14) {
     thisWeek: rangeStats(daily, rounds, mondayOf(to), to),
     daily: daily.map(strip).sort((a, b) => a.date.localeCompare(b.date)),
     rounds: rounds.map(strip), tests: tests.map(strip), body: body.map(strip),
+    sc4: sc4 && sc4.totalShots ? {
+      shots: sc4.totalShots, from: sc4.firstDate, to: sc4.lastDate,
+      clubs: sc4.clubs.map(c => ({ club: c.club, swing: c.swing, n: c.n, carry: c.carry, range: [c.lo, c.hi], side: c.side, clubSpeed: c.clubSpeed, smash: c.smash })),
+      recentSessions: sc4.sessions.filter(s => s.date >= from),
+      insights: sc4.insights.map(i => i.text),
+    } : null,
   };
 }

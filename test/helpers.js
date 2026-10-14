@@ -22,7 +22,7 @@ class Stmt {
 export function makeD1() {
   const db = new DatabaseSync(":memory:");
   db.exec(schema);
-  return { prepare: sql => new Stmt(db, sql), raw: db };
+  return { prepare: sql => new Stmt(db, sql), batch: async stmts => { const out = []; for (const st of stmts) out.push(await st.run()); return out; }, raw: db };
 }
 
 export const SECRET = "test-channel-secret";

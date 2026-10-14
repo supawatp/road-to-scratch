@@ -77,6 +77,7 @@ export const HELP_TEXT = [
   "plan - this week",
   "checkin - tonight's check-in",
   "score - log a round, question by question",
+  "club 145 - which club for 145 yd (+1 into wind)",
   "body 80 82 - log weight (kg) and waist (cm)",
   "dashboard - link to the tracker",
   "quota - push messages used this month",

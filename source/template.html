@@ -121,6 +121,12 @@ a.yt:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .pick{display:grid;gap:6px;background:var(--surface);border-radius:8px;padding:14px}
 .pick .club{font-family:var(--f-display);font-size:32px;line-height:1.1}
 .pick .club small{font-family:var(--f-data);font-size:13px;color:var(--muted)}
+.insights{margin:0;padding:0;list-style:none;display:grid;gap:8px}
+.insights li{border:1px solid var(--line);border-left:3px solid var(--muted);border-radius:8px;padding:9px 12px;font-size:14px;color:var(--ink2);background:var(--surface)}
+.insights li.warn{border-left-color:var(--warn)} .insights li.good{border-left-color:var(--good)}
+.range text{font:12px var(--f-data);fill:var(--ink2)} .range .lbl{fill:var(--ink);font-weight:500}
+#yd-table td.sc4{color:var(--accent)}
+#sc4-sessions select{width:auto;padding:4px 6px;font-size:12px}
 @media (min-width:640px){.wrap{padding-inline:24px}nav.tabs{margin-inline:-24px;padding-inline:24px}}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 </style>
@@ -137,6 +143,7 @@ a.yt:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
     <button role="tab" data-tab="plan" aria-selected="false">Plan</button>
     <button role="tab" data-tab="rounds" aria-selected="false">Rounds</button>
     <button role="tab" data-tab="clubs" aria-selected="false">Clubs</button>
+    <button role="tab" data-tab="sc4" aria-selected="false">SC4</button>
     <button role="tab" data-tab="tests" aria-selected="false">Tests</button>
     <button role="tab" data-tab="body" aria-selected="false">Body</button>
     <button role="tab" data-tab="progress" aria-selected="false">Progress</button>
@@ -258,7 +265,7 @@ a.yt:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   <section class="panel" id="p-clubs" role="tabpanel" hidden>
     <div class="card">
       <h2>Club picker</h2>
-      <p class="muted" style="margin:0;font-size:13px">For the course. It uses your average carry, so a normal strike reaches the middle of the green.</p>
+      <p class="muted" style="margin:0;font-size:13px">For the course. It uses your SC4 carry (last 40 shots per club) or, where there's no SC4 data, your saved yardage, so a normal strike reaches the middle of the green. In LINE: <span class="mono">club 145</span>.</p>
       <div class="fields">
         <label class="f">Yards to the middle of the green<input type="number" id="pk-dist" min="20" max="320" inputmode="numeric" placeholder="e.g. 145"></label>
         <label class="f">Conditions<select id="pk-adj"><option value="0">Flat, calm</option><option value="1">Into wind or uphill (+1 club)</option><option value="2">Strong wind or steep uphill (+2 clubs)</option><option value="-1">Downwind or downhill (−1 club)</option></select></label>
@@ -267,11 +274,47 @@ a.yt:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
     </div>
     <div class="card">
       <div class="row between"><h2>My yardages</h2><span class="muted mono" style="font-size:12px">average carry · yards</span></div>
-      <p class="muted" style="margin:0;font-size:13px">How to measure: 10 normal swings per club on the SC4 with your full routine. Ignore the best 2 and worst 2, then average the middle 6. Wedges also get 10:30 and 9:00 swing lengths.</p>
-      <div class="tablewrap"><table id="yd-table"><thead><tr><th>Club</th><th class="num">Full</th><th class="num">10:30</th><th class="num">9:00</th></tr></thead><tbody></tbody></table></div>
+      <p class="muted" style="margin:0;font-size:13px">The SC4 column fills in from your uploads (middle 60% of the last 40 shots: the "ignore the best 2 and worst 2" rule). It wins over a saved number once a club has 10 shots. Type yardages for clubs the SC4 hasn't measured, like the driver on the course.</p>
+      <div class="tablewrap"><table id="yd-table"><thead><tr><th>Club</th><th class="num">SC4</th><th class="num">Full</th><th class="num">3/4</th><th class="num">1/2</th></tr></thead><tbody></tbody></table></div>
       <div class="row"><button class="btn" id="yd-save">Save yardages</button><span class="status" id="yd-status"></span></div>
     </div>
     <div class="card"><h3>Rules for picking a club</h3><ul class="ruleslist" id="c-course"></ul></div>
+  </section>
+
+  <!-- SC4 -->
+  <section class="panel" id="p-sc4" role="tabpanel" hidden>
+    <div class="card">
+      <div class="row between"><h2>What's going on</h2><span class="muted mono" style="font-size:12px" id="sc4-meta"></span></div>
+      <ul class="insights" id="sc4-insights"></ul>
+    </div>
+    <div class="card">
+      <div class="row between"><h2>Distances</h2><span class="muted mono" style="font-size:12px">carry · yd · bar = middle half of shots</span></div>
+      <div class="chart" id="sc4-range"></div>
+      <div class="tablewrap"><table id="sc4-clubs"><thead><tr><th>Club</th><th class="num">Carry</th><th class="num">Usual</th><th class="num">Miss</th><th class="num">Speed</th><th class="num">Smash</th><th class="num">Shots</th></tr></thead><tbody></tbody></table></div>
+    </div>
+    <div class="card">
+      <div class="row between"><h2>Trends</h2><label class="f" style="width:150px"><span class="muted">Club</span><select id="sc4-club"></select></label></div>
+      <div class="flat"><div class="row between"><h3>Carry</h3><span class="muted mono" style="font-size:12px">yd · median per session</span></div><div class="chart" id="ch-sc4-carry"></div></div>
+      <div class="flat"><div class="row between"><h3>Distance control</h3><span class="muted mono" style="font-size:12px">carry spread · yd · lower is better</span></div><div class="chart" id="ch-sc4-spread"></div></div>
+      <div class="flat"><div class="row between"><h3>Direction</h3><span class="muted mono" style="font-size:12px">avg yd off line · + right, − left</span></div><div class="chart" id="ch-sc4-side"></div></div>
+      <div class="flat"><div class="row between"><h3>Club speed</h3><span class="muted mono" style="font-size:12px">mph</span></div><div class="chart" id="ch-sc4-speed"></div></div>
+    </div>
+    <details class="card" id="sc4-upload-wrap">
+      <summary><h2>Upload SC4 data</h2></summary>
+      <div class="flat" style="margin-top:12px">
+        <p class="muted" style="margin:0;font-size:13px">Export from the SC4 app (Stats → Practice or Target table, CSV). You can pick several files. Uploading a file twice adds nothing new.</p>
+        <div class="fields">
+          <label class="f">CSV files<input type="file" id="sc4-files" accept=".csv,text/csv" multiple></label>
+          <label class="f">Swing length<select id="sc4-swing"><option value="auto">Auto (wedges split by club speed)</option><option value="full">All full swings</option><option value="3/4">All 3/4 swings</option></select></label>
+        </div>
+        <div class="row"><button class="btn" id="sc4-upload">Upload</button><span class="status" id="sc4-status"></span></div>
+      </div>
+    </details>
+    <details class="card">
+      <summary><h2>Sessions</h2></summary>
+      <p class="muted" style="margin:12px 0 0;font-size:13px">One row per club per day. Set the swing length if Auto got it wrong. Mixed sessions stay on Auto.</p>
+      <div class="tablewrap"><table id="sc4-sessions"><thead><tr><th>Date</th><th>Club</th><th class="num">Shots</th><th class="num">3/4</th><th class="num">Carry</th><th>Swing</th><th></th></tr></thead><tbody></tbody></table></div>
+    </details>
   </section>
 
   <!-- TESTS -->
@@ -366,6 +409,7 @@ function showTab(name) {
   $$("section.panel").forEach(p => p.hidden = p.id !== "p-" + name);
   try { localStorage.setItem("rts-tab", name); } catch (e) {}
   if (name === "progress") renderCharts();
+  if (name === "sc4") renderSc4();
 }
 $$("nav.tabs button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
 
@@ -686,7 +730,7 @@ function renderCharts() {
   const ur = [...S.body].reverse().filter(b => b.uric != null);
   lineChart($("#ch-uric"), ur.map(b => ({ x: fmtDate(b.date), y: b.uric })), { label: "Uric acid", target: 6, targetLabel: "6.0", empty: "Log your next uric acid result in Body to start the trend. Target: below 6 mg/dL." });
 }
-let rz; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(renderCharts, 150); });
+let rz; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { renderCharts(); renderSc4(); }, 150); });
 
 /* ---------- coach note ---------- */
 function renderCoach(docs) {
@@ -706,30 +750,37 @@ function renderCoach(docs) {
 
 /* ---------- clubs ---------- */
 const CLUBS = [
-  { k: "D", n: "Driver" }, { k: "3W", n: "3-wood" }, { k: "5W", n: "5-wood" }, { k: "HY", n: "Hybrid" },
+  { k: "D", n: "Driver" }, { k: "3W", n: "3-wood" }, { k: "5W", n: "5-wood" }, { k: "4H", n: "4-hybrid" },
   { k: "4i", n: "4-iron" }, { k: "5i", n: "5-iron" }, { k: "6i", n: "6-iron" }, { k: "7i", n: "7-iron" }, { k: "8i", n: "8-iron" }, { k: "9i", n: "9-iron" },
-  { k: "PW", n: "Pitching wedge", w: 1 }, { k: "50", n: "50° wedge", w: 1 }, { k: "54", n: "54° wedge", w: 1 }, { k: "58", n: "58° wedge", w: 1 }
+  { k: "PW", n: "Pitching wedge", w: 1 }, { k: "GW", n: "Gap wedge", w: 1 }, { k: "SW", n: "Sand wedge", w: 1 }
 ];
-S.yards = {}; let ydDirty = false;
+const clubLabel = k => (CLUBS.find(c => c.k === k) || { n: k }).n;
+S.yards = {}; S.sc4 = undefined; let ydDirty = false; // undefined = not loaded yet, null = no data
+// SC4 yardage for a club/swing when there are enough shots (same rule as the server's clubOptions).
+const sc4Club = (k, swing) => { const c = S.sc4 && S.sc4.clubs ? S.sc4.clubs.find(x => x.club === k && x.swing === swing) : null; return c && c.n >= (swing === "full" ? 10 : 6) ? c : null; };
 function renderYardTable(force) {
   if (ydDirty && !force) return;
   const c = S.yards || {};
   const cell = (k, f, show) => show ? `<td class="num"><input type="number" id="yd-${k}-${f}" min="0" max="350" inputmode="numeric" value="${c[k] && c[k][f] != null ? c[k][f] : ""}" aria-label="${k} ${f}"></td>` : `<td class="num muted">·</td>`;
-  $("#yd-table tbody").innerHTML = CLUBS.map(cl => `<tr><td>${esc(cl.n)}</td>${cell(cl.k, "full", 1)}${cell(cl.k, "h1030", cl.w)}${cell(cl.k, "h9", cl.w)}</tr>`).join("");
+  const sc4Cell = k => { const f = sc4Club(k, "full"), q = sc4Club(k, "3/4"); return `<td class="num sc4">${f ? f.carry : "·"}${q ? ` <span class="muted">/ ${q.carry}</span>` : ""}</td>`; };
+  $("#yd-table tbody").innerHTML = CLUBS.map(cl => `<tr><td>${esc(cl.n)}</td>${sc4Cell(cl.k)}${cell(cl.k, "full", 1)}${cell(cl.k, "h1030", cl.w)}${cell(cl.k, "h9", cl.w)}</tr>`).join("");
   $$("#yd-table input").forEach(i => i.addEventListener("input", () => { ydDirty = true; $("#yd-status").textContent = "Unsaved changes"; }));
 }
 function yardOptions() {
   const c = S.yards || {}; const out = [];
-  CLUBS.forEach(cl => { const v = c[cl.k] || {};
-    if (v.full != null) out.push({ label: cl.n, carry: v.full, full: true });
-    if (cl.w && v.h1030 != null) out.push({ label: cl.n + " · 10:30 swing", carry: v.h1030 });
-    if (cl.w && v.h9 != null) out.push({ label: cl.n + " · 9:00 swing", carry: v.h9 }); });
+  const keys = [...new Set([...CLUBS.map(cl => cl.k), ...(S.sc4 && S.sc4.clubs ? S.sc4.clubs.map(x => x.club) : [])])];
+  keys.forEach(k => { const v = c[k] || {}, n = clubLabel(k), f = sc4Club(k, "full"), q = sc4Club(k, "3/4");
+    if (f) out.push({ label: n, carry: f.carry, lo: f.lo, hi: f.hi, side: f.side, n: f.n, full: true, sc4: true });
+    else if (v.full != null) out.push({ label: n, carry: v.full, full: true });
+    if (q) out.push({ label: n + " · 3/4 swing", carry: q.carry, lo: q.lo, hi: q.hi, side: q.side, n: q.n, sc4: true });
+    else if (v.h1030 != null) out.push({ label: n + " · 3/4 swing", carry: v.h1030 });
+    if (v.h9 != null) out.push({ label: n + " · 1/2 swing", carry: v.h9 }); });
   return out.sort((a, b) => a.carry - b.carry);
 }
 function renderPicker() {
   const out = $("#pk-out"); const d = num($("#pk-dist").value); const adj = Number($("#pk-adj").value);
   const opts = yardOptions(); const fulls = opts.filter(o => o.full);
-  if (!fulls.length) { out.innerHTML = `<span class="muted">Add your average carries in “My yardages” below, then enter a distance.</span>`; return; }
+  if (!fulls.length) { out.innerHTML = `<span class="muted">Upload SC4 data (SC4 tab) or add your average carries in “My yardages” below, then enter a distance.</span>`; return; }
   if (d == null) { out.innerHTML = `<span class="muted">Enter the yards to the middle of the green.</span>`; return; }
   let pick, below;
   if (adj === 0) {
@@ -741,8 +792,9 @@ function renderPicker() {
   }
   if (!pick) { out.innerHTML = adj < 0 || d < opts[0].carry ? `<div class="club">${esc(opts[0].label)} <small>${opts[0].carry} yd</small></div><span class="muted">Shorter than your shortest saved swing. Add more wedge swing lengths.</span>` : `<div class="club">Lay up</div><span class="muted">${d} yd is beyond your average carry with any club. Play to your favourite wedge distance instead.</span>`; return; }
   const spare = pick.carry - d;
-  out.innerHTML = `<span class="phase-tag">Play</span><div class="club">${esc(pick.label)} <small>${pick.carry} yd average</small></div>
-    <span style="font-size:14px">${adj === 0 ? (spare >= 0 ? `Reaches the middle with ${spare} yd to spare.` : "") : `Adjusted ${adj > 0 ? "+" : "−"}${Math.abs(adj)} club for conditions.`} Aim at the middle of the green.</span>
+  const aim = pick.side != null && Math.abs(pick.side) >= 5 ? `Misses ${Math.round(Math.abs(pick.side))} yd ${pick.side > 0 ? "right" : "left"} on average: aim at the ${pick.side > 0 ? "left" : "right"} half of the green.` : "Aim at the middle of the green.";
+  out.innerHTML = `<span class="phase-tag">Play</span><div class="club">${esc(pick.label)} <small>${pick.carry} yd ${pick.sc4 ? `· usually ${pick.lo}–${pick.hi} · SC4, ${pick.n} shots` : "average"}</small></div>
+    <span style="font-size:14px">${adj === 0 ? (spare >= 0 ? `Reaches the middle with ${spare} yd to spare.` : "") : `Adjusted ${adj > 0 ? "+" : "−"}${Math.abs(adj)} club for conditions.`} ${aim}</span>
     ${below && adj === 0 ? `<span class="muted" style="font-size:13px">${esc(below.label)} (${below.carry} yd) only gets there if you flush it. Don't plan on your best shot.</span>` : ""}`;
 }
 $("#pk-dist").addEventListener("input", renderPicker);
@@ -756,12 +808,84 @@ $("#yd-save").addEventListener("click", async () => {
   catch (e) { $("#yd-status").textContent = saveError(e); }
 });
 
+/* ---------- SC4 ---------- */
+const missText = v => v == null ? "" : Math.abs(v) < 1 ? "on line" : `${Math.round(Math.abs(v))} ${v > 0 ? "R" : "L"}`;
+function rangeChart(el, rows) {
+  if (!rows.length) return emptyChart(el, "Upload SC4 data to see how far each club goes.");
+  const W = Math.max(el.clientWidth || 600, 280), RH = 24, L = 104, R = 40, T = 6, H = T + rows.length * RH + 22;
+  const lo = Math.min(...rows.map(r => r.lo ?? r.carry)), hi = Math.max(...rows.map(r => r.hi ?? r.carry));
+  const ticks = niceTicks(lo - 5, hi + 5, 5), x0 = ticks[0], x1 = ticks[ticks.length - 1];
+  const sx = v => L + (v - x0) / (x1 - x0 || 1) * (W - L - R);
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Carry by club"><g class="axis">${ticks.map(t => `<line class="gridline" x1="${sx(t)}" x2="${sx(t)}" y1="${T}" y2="${H - 20}"/><text x="${sx(t)}" y="${H - 6}" text-anchor="middle">${t}</text>`).join("")}</g><g class="range">`;
+  rows.forEach((r, i) => {
+    const y = T + i * RH + RH / 2, col = r.swing === "full" ? "var(--series)" : "var(--gold)";
+    s += `<text class="lbl" x="${L - 10}" y="${y + 4}" text-anchor="end">${esc(r.club)}${r.swing === "full" ? "" : " 3/4"}</text>`;
+    if (r.lo != null) s += `<rect x="${sx(r.lo)}" y="${y - 5}" width="${Math.max(2, sx(r.hi) - sx(r.lo))}" height="10" rx="5" fill="${col}" opacity=".28"/>`;
+    s += `<circle cx="${sx(r.carry)}" cy="${y}" r="5" fill="${col}"/><text x="${sx(r.hi ?? r.carry) + 8}" y="${y + 4}">${r.carry}</text>`;
+  });
+  el.innerHTML = s + `</g></svg>`;
+}
+function renderSc4() {
+  const d = S.sc4;
+  if (d === undefined) { $("#sc4-insights").innerHTML = `<li>Loading…</li>`; return; }
+  if (!d || !d.totalShots) {
+    $("#sc4-meta").textContent = "";
+    $("#sc4-insights").innerHTML = `<li>No SC4 data yet. Open “Upload SC4 data” below and add your CSV exports.</li>`;
+    rangeChart($("#sc4-range"), []); $("#sc4-clubs tbody").innerHTML = ""; $("#sc4-sessions tbody").innerHTML = ""; $("#sc4-club").innerHTML = "";
+    ["carry", "spread", "side", "speed"].forEach(k => emptyChart($("#ch-sc4-" + k), "No sessions yet."));
+    $("#sc4-upload-wrap").open = true; return;
+  }
+  $("#sc4-meta").textContent = `${d.totalShots} shots · ${fmtDate(d.firstDate)}–${fmtDate(d.lastDate)}`;
+  $("#sc4-insights").innerHTML = d.insights.length ? d.insights.map(i => `<li class="${esc(i.level)}">${esc(i.text)}</li>`).join("") : `<li>Nothing stands out. Keep uploading sessions.</li>`;
+  if ($("#p-sc4").hidden) return;
+  rangeChart($("#sc4-range"), d.clubs);
+  $("#sc4-clubs tbody").innerHTML = d.clubs.map(c => `<tr><td>${esc(clubLabel(c.club))}${c.swing === "full" ? "" : " · 3/4"}</td><td class="num tot">${c.carry}</td><td class="num">${c.lo}–${c.hi}</td><td class="num">${missText(c.side)}</td><td class="num">${c.clubSpeed ?? ""}</td><td class="num">${c.smash ?? ""}</td><td class="num">${c.n}${c.n < 10 ? " (few)" : ""}</td></tr>`).join("");
+  const clubs = [...new Set(d.sessions.map(x => x.club))].sort((a, b) => { const ca = d.clubs.find(c => c.club === a), cb = d.clubs.find(c => c.club === b); return (cb ? cb.carry : 0) - (ca ? ca.carry : 0); });
+  const sel = $("#sc4-club"), cur = sel.value || (clubs.includes("7i") ? "7i" : clubs[0]);
+  sel.innerHTML = clubs.map(c => `<option value="${esc(c)}"${c === cur ? " selected" : ""}>${esc(clubLabel(c))}</option>`).join("");
+  const ss = d.sessions.filter(x => x.club === sel.value);
+  const pts = k => ss.filter(x => x[k] != null).map(x => ({ x: fmtDate(x.date), y: x[k], extra: `${x.n} shots` }));
+  const msg = "Two sessions with this club will show a trend.";
+  lineChart($("#ch-sc4-carry"), pts("carry"), { label: "Carry", empty: msg });
+  lineChart($("#ch-sc4-spread"), pts("carrySpread"), { label: "Carry spread", empty: msg });
+  lineChart($("#ch-sc4-side"), pts("side"), { label: "Direction", target: 0, targetLabel: "line", empty: msg });
+  lineChart($("#ch-sc4-speed"), pts("clubSpeed"), { label: "Club speed", empty: msg });
+  const opt = (v, t, cur) => `<option value="${v}"${v === cur ? " selected" : ""}>${t}</option>`;
+  $("#sc4-sessions tbody").innerHTML = [...d.sessions].reverse().map(x => `<tr><td class="mono">${esc(fmtDate(x.date))}</td><td>${esc(x.club)}</td><td class="num">${x.n}</td><td class="num">${x.n34 || ""}</td><td class="num">${x.carry ?? ""}</td>
+    <td><select data-date="${esc(x.date)}" data-club="${esc(x.club)}" aria-label="Swing length">${opt("auto", "Auto", x.tag)}${opt("full", "Full", x.tag)}${opt("3/4", "3/4", x.tag)}${x.tag === "mixed" ? opt("mixed", "Mixed", "mixed") : ""}</select></td>
+    <td><button class="btn small danger" data-date="${esc(x.date)}" data-club="${esc(x.club)}">Delete</button></td></tr>`).join("");
+  $$("#sc4-sessions select").forEach(s => s.addEventListener("change", async () => {
+    if (!S.db || s.value === "mixed") return; s.disabled = true;
+    try { await S.db.rpc("PUT", "sc4/session", { date: s.dataset.date, club: s.dataset.club, swing: s.value }); } catch (e) { s.disabled = false; }
+  }));
+  $$("#sc4-sessions button").forEach(b => b.addEventListener("click", async () => {
+    if (b.dataset.armed !== "1") { b.dataset.armed = "1"; b.textContent = "Confirm"; setTimeout(() => { b.dataset.armed = ""; b.textContent = "Delete"; }, 4000); return; }
+    b.disabled = true;
+    try { await S.db.rpc("DELETE", `sc4/session?date=${encodeURIComponent(b.dataset.date)}&club=${encodeURIComponent(b.dataset.club)}`); } catch (e) { b.disabled = false; b.textContent = "Retry"; }
+  }));
+}
+$("#sc4-club").addEventListener("change", renderSc4);
+$("#sc4-upload").addEventListener("click", async () => {
+  const files = [...$("#sc4-files").files];
+  if (!S.db || !S.db.rpc) return;
+  if (!files.length) { $("#sc4-status").textContent = "Choose one or more CSV files first."; return; }
+  const btn = $("#sc4-upload"); btn.disabled = true;
+  let added = 0, dup = 0; const errs = [];
+  for (const [i, f] of files.entries()) {
+    $("#sc4-status").textContent = `Uploading ${i + 1} of ${files.length}…`;
+    try { const r = await S.db.rpc("POST", `sc4/import?swing=${encodeURIComponent($("#sc4-swing").value)}`, await f.text()); added += r.added; dup += r.duplicates; }
+    catch (e) { errs.push(`${f.name}: ${e.message || "failed"}`); }
+  }
+  $("#sc4-status").textContent = `Added ${added} shots${dup ? `, ${dup} were already there` : ""}.${errs.length ? " Problems: " + errs.join("; ") : ""}`;
+  $("#sc4-files").value = ""; btn.disabled = false;
+});
+
 /* ---------- boot ---------- */
 function renderAll() { renderWeek(); renderRounds(); renderTests(); renderBody(); renderCharts(); }
 function boot() {
   headerText(); renderToday(); renderPlan();
   ["#ci-date", "#rd-date", "#ts-date", "#bd-date"].forEach(id => $(id).value = todayStr);
-  loadCheckin(todayStr); renderAll(); renderYardTable(true); renderPicker();
+  loadCheckin(todayStr); renderAll(); renderYardTable(true); renderPicker(); renderSc4();
   let tab = "today"; try { tab = localStorage.getItem("rts-tab") || "today"; } catch (e) {}
   if (location.hash && $(`nav.tabs button[data-tab="${location.hash.slice(1)}"]`)) tab = location.hash.slice(1);
   showTab(tab);
@@ -773,7 +897,7 @@ function startApp(data) {
 }
 window.claude?.hot?.ready ? window.claude.hot.ready(startApp) : startApp(window.claude?.hot?.data ?? {});
 
-const setDisabled = off => $$("#ci-save,#cap-save,#yd-save,#round-form button,#test-form button,#body-form button").forEach(b => b.disabled = off);
+const setDisabled = off => $$("#ci-save,#cap-save,#yd-save,#sc4-upload,#round-form button,#test-form button,#body-form button").forEach(b => b.disabled = off);
 setDisabled(true);
 (async () => {
   const db = window.claude && window.claude.use ? await window.claude.use("db") : null;
@@ -792,6 +916,7 @@ setDisabled(true);
   sub("body", snap => { S.body = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort(byDateDesc); renderBody(); renderCharts(); });
   sub("coach", snap => renderCoach(snap.docs.map(d => d.data() || {})));
   db.doc("settings/yardages").onSnapshot(s => { S.yards = s.exists ? ((s.data() || {}).clubs || {}) : {}; renderYardTable(); renderPicker(); });
+  db.doc("sc4/stats").onSnapshot(s => { S.sc4 = s.exists ? s.data() : null; renderYardTable(); renderPicker(); renderSc4(); });
   db.doc("settings/main").onSnapshot(s => { S.settings = s.exists ? { ...s.data() } : {}; if (document.activeElement !== $("#cap")) $("#cap").value = S.settings.cap ?? ""; });
 })();
 </script>

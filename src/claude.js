@@ -35,7 +35,9 @@ const REVIEW_SCHEMA = {
 const SYSTEM = `You are a practical golf and health coach for Supawat (Bangkok). Each Sunday you review the last 14 days of tracker data
 against the 12-week Road to Scratch program and write next week's coach note and small plan tweaks.
 Be specific and brief. Respect the program's rules (gout: uric acid, alcohol limits, never miss twice, round-day protocol).
-Only tighten or loosen targets when the data clearly supports it; otherwise repeat the planned values.`;
+Only tighten or loosen targets when the data clearly supports it; otherwise repeat the planned values.
+The summary may include SC4 launch-monitor data (carry in yards, club speed in mph, side: + right / - left) with
+automatic insights. Use it to connect practice results with sleep, drinks and energy, and to suggest one practice focus.`;
 
 /** Strips session exercise lists so the prompt stays small. */
 function programBrief(program, nextWeek) {

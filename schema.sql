@@ -16,3 +16,9 @@ CREATE TABLE IF NOT EXISTS convo   (user_id TEXT PRIMARY KEY, flow TEXT, step IN
 CREATE INDEX IF NOT EXISTS rounds_date ON rounds(date);
 CREATE INDEX IF NOT EXISTS tests_date  ON tests(date);
 CREATE INDEX IF NOT EXISTS body_date   ON body(date);
+
+-- SC4 Pro launch-monitor shots (also created automatically on first use).
+CREATE TABLE IF NOT EXISTS shots   (id TEXT PRIMARY KEY, date TEXT, club TEXT, mode TEXT, swing TEXT, no INT, carry REAL, total REAL,
+                                    side REAL, sideTotal REAL, toTarget REAL, clubSpeed REAL, ballSpeed REAL, launch REAL, launchDir REAL,
+                                    smash REAL, apex REAL, spin REAL, spinAxis REAL, backSpin REAL, sideSpin REAL, created TEXT);
+CREATE INDEX IF NOT EXISTS shots_club_date ON shots(club, date);

@@ -11,6 +11,9 @@ import { fullPlanText, weekPlanText, dayPlan } from "./program.js";
 import { checkinDate, weekOf } from "./dates.js";
 import { loadConvo, saveConvo, clearConvo, putDoc, rememberOrigin } from "./db.js";
 import { dashboardUrl } from "./context.js";
+import { getSc4 } from "./sc4store.js";
+import { clubOptions, pickClub } from "./sc4.js";
+import { getSetting } from "./db.js";
 
 const STALE_MS = 18 * 3600 * 1000; // an unfinished check-in older than this starts over
 
@@ -121,7 +124,7 @@ async function startCheckin(ctx, userId, reply) {
 async function onText(text, userId, ctx, reply) {
   const lower = text.toLowerCase();
   const cmd = lower.split(/\s+/)[0];
-  const COMMANDS = ["today", "plan", "help", "dashboard", "checkin", "check-in", "ci", "score", "round", "body", "hello", "quota", "cancel"];
+  const COMMANDS = ["today", "plan", "help", "dashboard", "checkin", "check-in", "ci", "score", "round", "body", "hello", "quota", "cancel", "club"];
   const state = await currentState(ctx, userId);
 
   if (cmd === "cancel") {
@@ -154,6 +157,7 @@ async function onText(text, userId, ctx, reply) {
     }
     case "checkin": case "check-in": case "ci": return startCheckin(ctx, userId, reply);
     case "score": return startScore(ctx, userId, reply);
+    case "club": return reply(await clubReply(ctx, text));
     case "quota": {
       const q = await ctx.line.quota();
       return reply(`Push messages this month: ${q.used}${q.limit != null ? ` of ${q.limit}` : ""} (${q.type}). Replies are free.`);
@@ -173,4 +177,29 @@ async function onText(text, userId, ctx, reply) {
       return reply(`Body saved for ${today}: ${b.body.weight} kg${b.body.waist != null ? `, waist ${b.body.waist} cm` : ""}${b.body.uric != null ? `, uric ${b.body.uric}` : ""}${b.body.flare ? ", flare" : ""}.`);
     }
   }
+}
+
+/** `club 145`, `club 145 +1` (into wind / uphill), `club 145 -1` (downwind / downhill). */
+export async function clubReply(ctx, text) {
+  const m = /^club\s+(\d{2,3})(?:\s*([+-][12]))?\s*$/i.exec(text.trim());
+  if (!m) return "Type the yards to the middle of the green, e.g. club 145\nAdd +1 into wind or uphill, +2 strong wind, -1 downwind.";
+  const d = Number(m[1]), adj = m[2] ? Number(m[2]) : 0;
+  const [sc4, yards] = await Promise.all([getSc4(ctx), getSetting(ctx.db, "yardages")]);
+  const options = clubOptions(sc4.clubs, (yards && yards.clubs) || {});
+  const r = pickClub(options, d, adj);
+  if (r.reason === "none") return "No yardages yet. Upload SC4 data or fill in My yardages on the dashboard (Clubs tab).";
+  if (!r.pick) {
+    return r.reason === "long"
+      ? `${d} yd is beyond your average carry with any club. Lay up to your favourite wedge distance.`
+      : `${d} yd is shorter than your shortest stock swing (${r.shortest.label}, ${r.shortest.carry} yd). Use a shorter swing.`;
+  }
+  const p = r.pick;
+  const lines = [`${d} yd${adj ? ` (${adj > 0 ? "+" : ""}${adj} club)` : ""} → ${p.label}`];
+  lines.push(p.source === "sc4"
+    ? `Carry ${p.carry} yd, usually ${p.lo}–${p.hi} (SC4, last ${p.n} shots)`
+    : `Carry ${p.carry} yd (your saved yardage)`);
+  if (p.side != null && Math.abs(p.side) >= 5) lines.push(`Misses ${Math.round(Math.abs(p.side))} yd ${p.side > 0 ? "right" : "left"} on average: aim at the ${p.side > 0 ? "left" : "right"} half of the green.`);
+  else lines.push("Aim at the middle of the green.");
+  if (r.below && !adj) lines.push(`${r.below.label} (${r.below.carry}) only gets there if you flush it.`);
+  return lines.join("\n");
 }

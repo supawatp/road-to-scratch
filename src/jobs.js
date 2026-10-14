@@ -5,6 +5,7 @@ import { getDoc, putDoc, listDocs, getSetting, setSetting } from "./db.js";
 import { QUESTIONS, questionMessage } from "./checkin.js";
 import { guardedPush, dashboardUrl, rangeStats, buildSummary } from "./context.js";
 import { weeklyReview, toOverrides } from "./claude.js";
+import { getSc4 } from "./sc4store.js";
 
 export const CRON = {
   morning: "45 1 * * *", // 08:45 Bangkok
@@ -78,6 +79,15 @@ export async function weeklyJob(ctx) {
     `Drinking nights: ${s.drinkNights}${limit != null ? ` (max ${limit})` : ""}`,
     `Rounds: ${s.rounds}${s.rounds ? ` · avg ${s.avgScore} · money ${s.money.toLocaleString("en-US")}` : ""}`,
   ];
+  const sc4 = await getSc4(ctx).catch(e => { console.error("sc4 weekly", e); return null; });
+  if (sc4 && sc4.totalShots) {
+    const wk = sc4.sessions.filter(x => x.date >= mon && x.date <= today);
+    const shots = wk.reduce((a, x) => a + x.n, 0);
+    const days = new Set(wk.map(x => x.date)).size;
+    lines.push(`SC4: ${shots ? `${shots} shots, ${days} practice day${days === 1 ? "" : "s"}` : "no uploads this week"}`);
+    const top = sc4.insights.filter(i => i.level !== "info").slice(0, 2);
+    if (top.length) lines.push(...top.map(i => `- ${i.text}`));
+  }
   const messages = [lines.join("\n")];
 
   if (ctx.env.ANTHROPIC_API_KEY) {
