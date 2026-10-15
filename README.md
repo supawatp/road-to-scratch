@@ -73,7 +73,7 @@ Shortcut, not listed in `help`: `round 42 45 putts 33 pen 1 dbl 2 short 4 long 0
 Free-text messages (not commands, not during a check-in or round entry) go to Claude Opus 5.5 when `ANTHROPIC_API_KEY` is set.
 
 - **Context**: the full program (cached prompt) plus today's plan, 14 days of check-ins, latest rounds, body log and SC4 yardages/insights.
-- **Tools**: read records, day plan, SC4 stats, club picker; log a check-in (merges into the day's row), body entry or round; change one date's sessions (`settings/program_overrides.days`, shown in LINE plans; the dashboard keeps the standard plan). Every value is range-checked; nothing can be deleted.
+- **Tools**: read records, day plan, SC4 stats, club picker; log a check-in (merges into the day's row), body entry or round; change one date's sessions (`settings/program_overrides.days`; LINE plans and the dashboard both follow it). Every value is range-checked; nothing can be deleted.
 - **Memory**: the last 6 text messages (`settings/chat_memory`); `forget` clears it.
 - **Limits**: `CHAT_DAILY_LIMIT` questions per day (default 30); effort `low`; up to 6 model calls and ~24 s per question. The webhook answers LINE immediately and the coach replies from `waitUntil`; if the reply token has expired, the answer is pushed instead (counts toward the push quota).
 - **Cost**: Claude API usage is billed to the API key (roughly $0.02–0.05 per question).

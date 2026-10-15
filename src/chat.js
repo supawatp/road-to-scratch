@@ -104,7 +104,7 @@ export const TOOLS = [
   },
   {
     name: "change_day_plan",
-    description: "Change the sessions planned for one date (e.g. move the gym session to the evening, or rest). Use session keys from the program's sessions, or \"rest\". Give only the slot(s) to change. The change shows in LINE plans; the dashboard keeps the standard plan.",
+    description: "Change the sessions planned for one date (e.g. move the gym session to the evening, or rest). Use session keys from the program's sessions, or \"rest\". Give only the slot(s) to change. The change shows in LINE plans and on the dashboard.",
     input_schema: { type: "object", properties: {
       date: DATE, am: S("string", "Session key for the morning slot, or \"rest\""), pm: S("string", "Session key for the evening slot, or \"rest\""),
     }, required: ["date"] },

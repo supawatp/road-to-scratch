@@ -395,7 +395,28 @@ function weekOf(d) {
 }
 function mondayOf(d) { const x = parseYmd(ymd(d)); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; }
 function phaseOf(w) { return P.phases.find(p => w >= p.weeks[0] && w <= p.weeks[1]) || null; }
-function weekInfo(w) { return P.weeks[w - 1] || null; }
+// Plan changes saved from LINE (settings/program_overrides): weekly tweaks from the Sunday review and
+// single-day session changes from the coach. Same rules as the Worker's applyOverrides().
+let S_OV = { weeks: {}, days: {} };
+function weekInfo(w) {
+  const wi = P.weeks[w - 1]; if (!wi) return null;
+  const o = (S_OV.weeks || {})[w]; if (!o) return wi;
+  const out = { ...wi };
+  if (typeof o.focusCue === "string" && o.focusCue.trim()) out.focusCue = o.focusCue.trim();
+  if (typeof o.sleep === "string" && /^\d{2}:\d{2} \/ \d{2}:\d{2}$/.test(o.sleep)) out.sleep = o.sleep;
+  if (Number.isInteger(o.drinks) && o.drinks >= 0 && o.drinks <= 7) out.drinks = o.drinks;
+  if (Array.isArray(o.extraTasks)) out.tasks = [...wi.tasks, ...o.extraTasks.filter(t => typeof t === "string" && t.trim())];
+  return out;
+}
+function dayTemplate(date) {
+  const d = parseYmd(ymd(date)), wd = String(d.getDay()), w = weekOf(d);
+  const t = { ...P.template[wd] }; let changed = false;
+  const apply = o => { if (!o) return; ["am", "pm"].forEach(s => { const k = o[s + "Key"];
+    if (k === "rest" || (k && P.sessions[k])) { t[s + "Key"] = k; t[s] = k === "rest" ? "Rest" : (o[s] || P.sessions[k].title); changed = true; } }); };
+  apply(((S_OV.weeks || {})[w] || {}).template?.[wd]);
+  apply((S_OV.days || {})[ymd(d)]);
+  return { ...t, changed };
+}
 function sleepFor(w) { if (w < 1) return ["00:30", "09:00"]; const wi = weekInfo(w); return (wi ? wi.sleep : "23:30 / 07:30").split(" / "); }
 function drinkLimit(w) { const wi = weekInfo(w); return wi ? wi.drinks : (w < 1 ? 3 : 2); }
 
@@ -430,19 +451,21 @@ function itemHTML(i) {
   return `<li>${esc(text)}${q ? ` <a class="yt" href="https://www.youtube.com/results?search_query=${encodeURIComponent(q)}" target="_blank" rel="noopener" aria-label="Video: ${esc(q)}">▶ Video</a>` : ""}</li>`;
 }
 function sessionHTML(key, label) {
+  if (key === "rest") return `<div class="sess"><div class="when">${label}</div><div class="muted">Rest</div></div>`;
   const s = key && P.sessions[key];
   if (!s) return `<div class="sess"><div class="when">${label}</div><div class="muted">Free</div></div>`;
   return `<div class="sess"><div class="when">${label}</div><details class="acc"><summary><span>${esc(s.title)}${s.time ? ` <span class="muted mono" style="font-size:12px">· ${esc(s.time)}</span>` : ""}</span></summary><ul class="list">${s.items.map(itemHTML).join("")}</ul>${s.note ? `<p class="muted" style="margin:8px 0 0;font-size:13px">${esc(s.note)}</p>` : ""}</details></div>`;
 }
 function renderToday() {
-  const t = P.template[String(today.getDay())];
+  const t = dayTemplate(today);
   let html = "";
   if (curWeek < 1) {
     html += `<div class="flat"><span class="phase-tag">${esc(P.week0.title)} · ${esc(P.week0.dates)}</span><ul class="list" style="margin:0">${P.week0.items.map(i => `<li>${esc(i)}</li>`).join("")}</ul></div><hr class="rule">`;
   } else if (curWeek <= 12) {
     const wi = weekInfo(curWeek);
-    html += `<div class="flat"><span class="phase-tag">This week · ${esc(wi.focus)}</span><ul class="list" style="margin:0">${wi.tasks.map(i => `<li>${esc(i)}</li>`).join("")}</ul></div><hr class="rule">`;
+    html += `<div class="flat"><span class="phase-tag">This week · ${esc(wi.focus)}</span>${wi.focusCue ? `<p class="sub" style="margin:0">Focus: ${esc(wi.focusCue)}</p>` : ""}<ul class="list" style="margin:0">${wi.tasks.map(i => `<li>${esc(i)}</li>`).join("")}</ul></div><hr class="rule">`;
   }
+  if (t.changed) html += `<p class="muted" style="margin:0;font-size:13px">Changed from the standard plan in LINE.</p>`;
   html += sessionHTML(t.amKey, "AM") + sessionHTML(t.pmKey, "PM");
   if (![t.amKey, t.pmKey].some(k => k === "mob" || (k || "").startsWith("pil"))) html += sessionHTML("mob", "Daily");
   $("#today-sessions").innerHTML = html;
@@ -539,7 +562,8 @@ function renderPlan() {
       <ul class="ruleslist">${wi.tasks.map(i => `<li>${esc(i)}</li>`).join("")}</ul>`;
   }
   $("#phases").innerHTML = P.phases.map(p => `<div class="card"><span class="phase-tag">Weeks ${p.weeks[0]}–${p.weeks[1]}</span><h3 style="font-family:var(--f-display);font-weight:400;font-size:20px">${esc(p.name)}</h3><p style="margin:0" class="sub">${esc(p.goal)}</p><hr class="rule"><div style="font-size:14px;display:grid;gap:6px"><div><b>Body.</b> <span class="sub">${esc(p.body)}</span></div><div><b>Golf.</b> <span class="sub">${esc(p.golf)}</span></div><div><b>Habits.</b> <span class="sub">${esc(p.habits)}</span></div></div></div>`).join("");
-  $("#tpl tbody").innerHTML = [1, 2, 3, 4, 5, 6, 0].map(d => { const t = P.template[d]; return `<tr${d === today.getDay() ? ' style="background:var(--surface)"' : ""}><td class="mono">${DAYS[d]}</td><td>${esc(t.am)}</td><td>${esc(t.pm)}</td></tr>`; }).join("");
+  const mon = mondayOf(today);
+  $("#tpl tbody").innerHTML = [1, 2, 3, 4, 5, 6, 0].map(d => { const x = new Date(mon); x.setDate(x.getDate() + (d + 6) % 7); const t = sel === curWeek ? dayTemplate(x) : P.template[d]; return `<tr${d === today.getDay() ? ' style="background:var(--surface)"' : ""}><td class="mono">${DAYS[d]}</td><td>${esc(t.am)}</td><td>${esc(t.pm)}</td></tr>`; }).join("");
   $("#sessions").innerHTML = Object.entries(P.sessions).map(([k, s]) => `<details class="acc"><summary><span>${esc(s.title)}${s.time ? ` <span class="muted mono" style="font-size:12px">· ${esc(s.time)}</span>` : ""}</span></summary><ul class="list">${s.items.map(itemHTML).join("")}</ul>${s.note ? `<p class="muted" style="margin:8px 0 0;font-size:13px">${esc(s.note)}</p>` : ""}</details>`).join("");
   $("#tests-title").textContent = P.tests.title;
   $("#tests-list").innerHTML = P.tests.items.map(i => `<li>${esc(i)}</li>`).join("");
@@ -917,6 +941,7 @@ setDisabled(true);
   sub("body", snap => { S.body = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort(byDateDesc); renderBody(); renderCharts(); });
   sub("coach", snap => renderCoach(snap.docs.map(d => d.data() || {})));
   db.doc("settings/yardages").onSnapshot(s => { S.yards = s.exists ? ((s.data() || {}).clubs || {}) : {}; renderYardTable(); renderPicker(); });
+  db.doc("settings/program_overrides").onSnapshot(s => { S_OV = s.exists ? { weeks: {}, days: {}, ...s.data() } : { weeks: {}, days: {} }; renderToday(); renderWeek(); renderPlan(); });
   db.doc("sc4/stats").onSnapshot(s => { S.sc4 = s.exists ? s.data() : null; renderYardTable(); renderPicker(); renderSc4(); });
   db.doc("settings/main").onSnapshot(s => { S.settings = s.exists ? { ...s.data() } : {}; if (document.activeElement !== $("#cap")) $("#cap").value = S.settings.cap ?? ""; });
 })();
