@@ -11,6 +11,7 @@ export function makeContext(env, { program, fetchImpl, now } = {}) {
   return {
     env, tz, db: env.DB,
     line: new LineClient(env.LINE_CHANNEL_ACCESS_TOKEN, fetchImpl),
+    fetch: fetchImpl, // also used for the Anthropic API (tests inject a fake)
     bundledProgram: program,
     now: now || (() => new Date()),
     today() { return localDate(this.now(), tz); },

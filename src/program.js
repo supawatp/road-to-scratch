@@ -16,9 +16,23 @@ export function splitItem(item) {
  * Shape: { weeks: { "<n>": { focusCue, sleep, drinks, extraTasks: [], template: { "<weekday>": { am, amKey, pm, pmKey } } } } }
  */
 export function applyOverrides(program, overrides) {
-  if (!overrides || typeof overrides !== "object" || !overrides.weeks) return program;
+  if (!overrides || typeof overrides !== "object") return program;
   const p = { ...program, weeks: program.weeks.map(w => ({ ...w })) };
-  for (const [n, o] of Object.entries(overrides.weeks)) {
+  // Single-day session changes: { days: { "2026-10-15": { amKey, pmKey } } } ("rest" = nothing planned)
+  if (overrides.days && typeof overrides.days === "object") {
+    p.dayOverrides = {};
+    for (const [date, o] of Object.entries(overrides.days)) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !o) continue;
+      const clean = {};
+      for (const s of ["am", "pm"]) {
+        const key = o[s + "Key"];
+        if (key === "rest") { clean[s + "Key"] = "rest"; clean[s] = "Rest"; }
+        else if (key && p.sessions[key]) { clean[s + "Key"] = key; clean[s] = o[s] || p.sessions[key].title; }
+      }
+      if (Object.keys(clean).length) p.dayOverrides[date] = clean;
+    }
+  }
+  for (const [n, o] of Object.entries(overrides.weeks || {})) {
     const w = p.weeks[Number(n) - 1];
     if (!w || !o) continue;
     if (typeof o.focusCue === "string" && o.focusCue.trim()) w.focusCue = o.focusCue.trim();
@@ -49,7 +63,7 @@ export function dayPlan(program, ymd) {
   const week = weekOf(ymd, program.start);
   const wi = program.weeks[week - 1] || null;
   const wd = weekday(ymd);
-  const tpl = { ...program.template[wd], ...((wi && wi.template && wi.template[wd]) || {}) };
+  const tpl = { ...program.template[wd], ...((wi && wi.template && wi.template[wd]) || {}), ...((program.dayOverrides && program.dayOverrides[ymd]) || {}) };
   const slot = s => {
     const key = tpl[s + "Key"];
     const session = program.sessions[key] || null;

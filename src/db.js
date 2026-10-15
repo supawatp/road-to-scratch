@@ -30,7 +30,7 @@ export const COLLECTIONS = {
 };
 
 // Settings that the Worker manages internally and the public API must not expose.
-const INTERNAL_SETTINGS = new Set(["push_count", "origin", "sc4_stats"]);
+const INTERNAL_SETTINGS = new Set(["push_count", "origin", "sc4_stats", "chat_memory", "chat_count"]);
 
 export const isCollection = name => Object.prototype.hasOwnProperty.call(COLLECTIONS, name);
 

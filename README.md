@@ -7,6 +7,7 @@ Cloudflare Worker + D1 that runs the golf & health program from `02 - LINE Coach
 - **Sunday 20:00** a weekly summary and, if `ANTHROPIC_API_KEY` is set, a Claude review that writes next Monday's coach note and next week's plan tweaks
 - **`/`** the Road to Scratch dashboard (`source/template.html`, unchanged) running on D1 through a REST shim
 - **`/api/v1`** REST API for the dashboard and for Claude
+- **Ask the coach**: any other LINE message is answered by Claude (Opus 5.5) with your plan and data, and it can log check-ins, body entries and rounds or change a day's sessions for you
 - **SC4 Pro** launch-monitor uploads: yardages per club (full and 3/4 swings), gaps, trends and plain-language insights, used by the club picker, `club 145` in LINE, the Sunday summary and the Claude review
 
 ## Layout
@@ -21,6 +22,7 @@ Cloudflare Worker + D1 that runs the golf & health program from `02 - LINE Coach
 | `src/program.js` | Day plan, Flex message, `today` / `plan` text, weekly overrides |
 | `src/jobs.js` | Cron jobs |
 | `src/claude.js` | Optional weekly Claude review |
+| `src/chat.js` | LINE coach: Claude tool loop, tools, context, 6-message memory, daily cap |
 | `src/sc4.js` | SC4 CSV parsing and analysis (pure) |
 | `src/sc4store.js` | `shots` table, CSV import, cached analysis |
 | `src/api.js`, `src/db.js` | REST API and D1 access |
@@ -60,9 +62,21 @@ Collections: `daily` (id = date), `rounds`, `tests`, `body` (UUID ids), `coach` 
 | `dashboard` | Link to the tracker |
 | `quota` | Push messages used this month |
 | `cancel` | Stop a check-in or round entry without saving |
+| `forget` | Clear the coach's chat memory |
+| anything else | Ask the coach (needs `ANTHROPIC_API_KEY`) |
 | `help` | Command list |
 
 Shortcut, not listed in `help`: `round 42 45 putts 33 pen 1 dbl 2 short 4 long 0 money -5000` logs a whole round in one line. Before `OWNER_LINE_USER_ID` is set, the bot only answers `hello`, with the sender's user ID.
+
+## LINE coach (Claude)
+
+Free-text messages (not commands, not during a check-in or round entry) go to Claude Opus 5.5 when `ANTHROPIC_API_KEY` is set.
+
+- **Context**: the full program (cached prompt) plus today's plan, 14 days of check-ins, latest rounds, body log and SC4 yardages/insights.
+- **Tools**: read records, day plan, SC4 stats, club picker; log a check-in (merges into the day's row), body entry or round; change one date's sessions (`settings/program_overrides.days`, shown in LINE plans; the dashboard keeps the standard plan). Every value is range-checked; nothing can be deleted.
+- **Memory**: the last 6 text messages (`settings/chat_memory`); `forget` clears it.
+- **Limits**: `CHAT_DAILY_LIMIT` questions per day (default 30); effort `low`; up to 6 model calls and ~24 s per question. The webhook answers LINE immediately and the coach replies from `waitUntil`; if the reply token has expired, the answer is pushed instead (counts toward the push quota).
+- **Cost**: Claude API usage is billed to the API key (roughly $0.02–0.05 per question).
 
 ## SC4 data
 
@@ -80,7 +94,7 @@ Never commit these. Set them in the Cloudflare dashboard as **Secret** type, or 
 
 `LINE_CHANNEL_SECRET`, `LINE_CHANNEL_ACCESS_TOKEN`, `OWNER_LINE_USER_ID`, `API_TOKEN` (generate with `openssl rand -hex 32`), `ANTHROPIC_API_KEY` (optional).
 
-Plain settings are in `wrangler.toml` `[vars]`: `TZ`, `PUSH_MONTHLY_LIMIT` (default 250; pushes stop once the month's count reaches it), `PUBLIC_URL` (optional; otherwise the dashboard link is learned from the first webhook call).
+Plain settings are in `wrangler.toml` `[vars]`: `TZ`, `PUSH_MONTHLY_LIMIT` (default 250; pushes stop once the month's count reaches it), `PUBLIC_URL` (optional; otherwise the dashboard link is learned from the first webhook call), `CHAT_DAILY_LIMIT` (default 30 coach questions a day).
 
 ## Develop and test
 

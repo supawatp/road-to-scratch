@@ -10,14 +10,19 @@ import {
 import { fullPlanText, weekPlanText, dayPlan } from "./program.js";
 import { checkinDate, weekOf } from "./dates.js";
 import { loadConvo, saveConvo, clearConvo, putDoc, rememberOrigin } from "./db.js";
-import { dashboardUrl } from "./context.js";
+import { dashboardUrl, guardedPush } from "./context.js";
+import { askCoach, clearMemory } from "./chat.js";
 import { getSc4 } from "./sc4store.js";
 import { clubOptions, pickClub } from "./sc4.js";
 import { getSetting } from "./db.js";
 
 const STALE_MS = 18 * 3600 * 1000; // an unfinished check-in older than this starts over
 
-export async function handleWebhook(request, ctx, waitUntil = p => p) {
+/**
+ * `defer` is ExecutionContext.waitUntil when running on Workers: events are then handled after LINE
+ * has its 200 (coach answers can take a while). Without it (tests) the events are awaited.
+ */
+export async function handleWebhook(request, ctx, waitUntil = p => p, defer = null) {
   const raw = await request.text();
   const ok = await verifySignature(ctx.env.LINE_CHANNEL_SECRET, raw, request.headers.get("x-line-signature"));
   if (!ok) return new Response("invalid signature", { status: 401 });
@@ -27,13 +32,17 @@ export async function handleWebhook(request, ctx, waitUntil = p => p) {
 
   waitUntil(rememberOrigin(ctx.db, new URL(request.url).origin).catch(e => console.error("origin", e)));
 
-  for (const event of body.events || []) {
-    try {
-      await handleEvent(event, ctx);
-    } catch (e) {
-      console.error("event failed", event.type, e && e.stack || e);
+  const work = (async () => {
+    for (const event of body.events || []) {
+      try {
+        await handleEvent(event, ctx);
+      } catch (e) {
+        console.error("event failed", event.type, e && e.stack || e);
+      }
     }
-  }
+  })();
+  if (defer) defer(work);
+  else await work;
   return new Response("ok");
 }
 
@@ -124,7 +133,7 @@ async function startCheckin(ctx, userId, reply) {
 async function onText(text, userId, ctx, reply) {
   const lower = text.toLowerCase();
   const cmd = lower.split(/\s+/)[0];
-  const COMMANDS = ["today", "plan", "help", "dashboard", "checkin", "check-in", "ci", "score", "round", "body", "hello", "quota", "cancel", "club"];
+  const COMMANDS = ["today", "plan", "help", "dashboard", "checkin", "check-in", "ci", "score", "round", "body", "hello", "quota", "cancel", "club", "forget"];
   const state = await currentState(ctx, userId);
 
   if (cmd === "cancel") {
@@ -140,8 +149,8 @@ async function onText(text, userId, ctx, reply) {
 
   if (!COMMANDS.includes(cmd)) {
     if (awaitingNote(state)) return answer(state, "note", text, userId, ctx, reply);
-    if (state) return reply(questionMessage(nextQuestion(state), "Tap a button to answer:\n"));
-    return reply(`Sorry, I didn't get that.\n\n${HELP_TEXT}`);
+    if (state) return reply(questionMessage(nextQuestion(state), "Tap a button to answer (or type cancel):\n"));
+    return coachReply(ctx, userId, text, reply);
   }
 
   const program = await ctx.program();
@@ -158,6 +167,7 @@ async function onText(text, userId, ctx, reply) {
     case "checkin": case "check-in": case "ci": return startCheckin(ctx, userId, reply);
     case "score": return startScore(ctx, userId, reply);
     case "club": return reply(await clubReply(ctx, text));
+    case "forget": await clearMemory(ctx); return reply("Done. The coach has forgotten our earlier messages.");
     case "quota": {
       const q = await ctx.line.quota();
       return reply(`Push messages this month: ${q.used}${q.limit != null ? ` of ${q.limit}` : ""} (${q.type}). Replies are free.`);
@@ -202,4 +212,18 @@ export async function clubReply(ctx, text) {
   else lines.push("Aim at the middle of the green.");
   if (r.below && !adj) lines.push(`${r.below.label} (${r.below.carry}) only gets there if you flush it.`);
   return lines.join("\n");
+}
+
+/** Free text goes to Claude when ANTHROPIC_API_KEY is set; otherwise the help text. */
+async function coachReply(ctx, userId, text, reply) {
+  if (!ctx.env.ANTHROPIC_API_KEY) return reply(`Sorry, I didn't get that.\n\n${HELP_TEXT}`);
+  ctx.line.startLoading(userId, 30).catch(e => console.warn("loading animation", e.message));
+  const { text: answer } = await askCoach(ctx, text);
+  try {
+    return await reply(answer);
+  } catch (e) {
+    // The reply token may have expired while Claude was thinking: send it as a push instead.
+    console.warn("reply failed, pushing instead", e.message);
+    return guardedPush(ctx, [answer]);
+  }
 }

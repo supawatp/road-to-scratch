@@ -59,6 +59,11 @@ export class LineClient {
     return this.call("POST", "/message/push", { to, messages: toMessages(messages).slice(0, 5) });
   }
 
+  /** Shows LINE's "typing..." animation in the 1:1 chat (free; ends when a message is sent). */
+  startLoading(chatId, seconds = 30) {
+    return this.call("POST", "/chat/loading/start", { chatId, loadingSeconds: Math.min(60, Math.max(5, Math.round(seconds / 5) * 5)) });
+  }
+
   async quota() {
     const [q, used] = await Promise.all([this.call("GET", "/message/quota"), this.call("GET", "/message/quota/consumption")]);
     return { type: q.type, limit: q.value ?? null, used: used.totalUsage ?? 0 };

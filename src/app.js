@@ -23,7 +23,7 @@ export function createApp({ program, dashboardHtml, fetchImpl, now } = {}) {
     try {
       if (url.pathname === "/line/webhook") {
         if (request.method !== "POST") return new Response("method not allowed", { status: 405 });
-        return await handleWebhook(request, ctx, waitUntil);
+        return await handleWebhook(request, ctx, waitUntil, ectx && ectx.waitUntil ? p => ectx.waitUntil(p) : null);
       }
       if (url.pathname.startsWith("/api/v1")) return await handleApi(request, ctx, url);
 

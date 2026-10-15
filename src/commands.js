@@ -82,5 +82,8 @@ export const HELP_TEXT = [
   "dashboard - link to the tracker",
   "quota - push messages used this month",
   "cancel - stop a check-in or round entry",
+  "forget - clear the coach's chat memory",
   "help - this list",
+  "",
+  "Anything else: ask the coach (Claude), e.g. \"slept 5 hours, should I train?\" or \"log my weight 79.5\".",
 ].join("\n");
