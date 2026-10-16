@@ -25,6 +25,14 @@ Cloudflare Worker + D1 that runs the golf & health program from `02 - LINE Coach
 | `src/chat.js` | LINE coach: Claude tool loop, tools, context, 6-message memory, daily cap |
 | `src/sc4.js` | SC4 CSV parsing and analysis (pure) |
 | `src/sc4store.js` | `shots` table, CSV import, cached analysis |
+| `src/schema.js` | Schema v2 (multi-user) and the automatic v1 -> v2 migration |
+| `src/users.js` | Users, statuses, profiles, LIFF login, sessions |
+| `src/questionnaire.js` | Onboarding questionnaire (English/Thai), validation, health flags |
+| `src/programs.js` | Program versions, design format, Claude program designer |
+| `src/jobqueue.js` | Background jobs run by the every-minute cron |
+| `src/msglog.js`, `src/media.js` | Chat log; photos/files in R2 |
+| `src/me.js`, `src/admin.js` | `/api/v1/me/*` (sign-up, questionnaire) and `/api/v1/admin/*` |
+| `src/pages/liff.js`, `src/pages/admin.js` | LIFF pages (sign-up, questionnaire, dashboard entry) and the admin portal |
 | `src/api.js`, `src/db.js` | REST API and D1 access |
 | `dashboard/rest-shim.js` | Implements `window.claude.use("db")` over `/api/v1` (poll every 30 s) |
 | `source/` | Original tracker files; `build.js` now also exports `buildHtml()` |
@@ -68,6 +76,25 @@ Collections: `daily` (id = date), `rounds`, `tests`, `body` (UUID ids), `coach` 
 
 Shortcut, not listed in `help`: `round 42 45 putts 33 pen 1 dbl 2 short 4 long 0 money -5000` logs a whole round in one line. Before `OWNER_LINE_USER_ID` is set, the bot only answers `hello`, with the sender's user ID.
 
+## Multiple users
+
+Everyone has their own data, program, coach memory and dashboard. The owner (`OWNER_LINE_USER_ID`) is the admin.
+
+1. **Add friend** -> the bot replies with a **Sign up** button (LIFF `.../signup`). Status `new`.
+2. **Sign up** in LIFF: LINE login (ID token verified with LINE), name, language, data consent -> `pending`; the admin gets a LINE message.
+3. **Approve** in `/admin` -> `onboarding`; the user gets the questionnaire link (LIFF `.../onboarding`).
+4. **Questionnaire** (8 sections incl. PAR-Q health screening, golf yes/no) -> profile + health flags; the coach asks a few follow-up questions in LINE.
+5. The coach starts the **program design** (background job, Claude Opus 5.5, ~1-3 min); the draft arrives in LINE with **Accept / Change** buttons. Changes are discussed in chat and redrafted.
+6. **Activate** in `/admin` -> `active`, the program starts the next Monday; daily messages begin.
+
+Non-golfers get health-only programs: no golf tabs, commands or coach tools.
+
+**Stored for every user**: all LINE messages in and out (`messages`, with model and token use for coach answers), photos/files in R2 bucket `road-to-scratch-media` (`media`, with Claude's category/description/numbers for photos), questionnaire answers + health flags + coach notes (`profiles`), program versions (`programs`). The admin portal shows all of it, exports a user's data as JSON, and deletes a user completely.
+
+**Dashboard for users**: LIFF `https://liff.line.me/<LIFF_ID>/app` (LINE login sets a 30-day session cookie). The admin keeps using the API-token login.
+
+**Database migration**: the first request after deploying this version converts a version-1 database in one transaction, giving all existing rows to the owner. D1 Time Travel can restore the database within 7 days if needed.
+
 ## LINE coach (Claude)
 
 Free-text messages (not commands, not during a check-in or round entry) go to Claude Opus 5.5 when `ANTHROPIC_API_KEY` is set.
@@ -94,7 +121,7 @@ Never commit these. Set them in the Cloudflare dashboard as **Secret** type, or 
 
 `LINE_CHANNEL_SECRET`, `LINE_CHANNEL_ACCESS_TOKEN`, `OWNER_LINE_USER_ID`, `API_TOKEN` (generate with `openssl rand -hex 32`), `ANTHROPIC_API_KEY` (optional).
 
-Plain settings are in `wrangler.toml` `[vars]`: `TZ`, `PUSH_MONTHLY_LIMIT` (default 250; pushes stop once the month's count reaches it), `PUBLIC_URL` (optional; otherwise the dashboard link is learned from the first webhook call), `CHAT_DAILY_LIMIT` (default 30 coach questions a day).
+Plain settings are in `wrangler.toml` `[vars]`: `LIFF_ID`, `LINE_LOGIN_CHANNEL_ID` (from the LINE Login channel; not secrets), `TZ`, `PUSH_MONTHLY_LIMIT` (default 250; pushes stop once the month's count reaches it), `PUBLIC_URL` (optional; otherwise the dashboard link is learned from the first webhook call), `CHAT_DAILY_LIMIT` (default 30 coach questions a day).
 
 ## Develop and test
 

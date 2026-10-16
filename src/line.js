@@ -59,6 +59,26 @@ export class LineClient {
     return this.call("POST", "/message/push", { to, messages: toMessages(messages).slice(0, 5) });
   }
 
+  /** Raw content of an image/video/audio/file message (a fetch Response). */
+  async content(messageId) {
+    if (!this.token) throw new Error("LINE_CHANNEL_ACCESS_TOKEN is not set");
+    const res = await this.fetch(`https://api-data.line.me/v2/bot/message/${encodeURIComponent(messageId)}/content`, {
+      headers: { Authorization: `Bearer ${this.token}` },
+    });
+    if (!res.ok) throw new Error(`LINE content ${messageId} -> ${res.status}`);
+    return res;
+  }
+
+  /** Display name and picture of a user who has added the OA. */
+  profile(userId) {
+    return this.call("GET", `/profile/${encodeURIComponent(userId)}`);
+  }
+
+  /** Links a rich menu to one user (e.g. the sign-up menu for new users). */
+  linkRichMenu(userId, richMenuId) {
+    return this.call("POST", `/user/${encodeURIComponent(userId)}/richmenu/${encodeURIComponent(richMenuId)}`);
+  }
+
   /** Shows LINE's "typing..." animation in the 1:1 chat (free; ends when a message is sent). */
   startLoading(chatId, seconds = 30) {
     return this.call("POST", "/chat/loading/start", { chatId, loadingSeconds: Math.min(60, Math.max(5, Math.round(seconds / 5) * 5)) });

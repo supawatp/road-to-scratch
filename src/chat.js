@@ -10,6 +10,10 @@ import { addDays, isYmd, mondayOf, weekOf, weekday, fmtDay } from "./dates.js";
 import { rangeStats } from "./context.js";
 import { getSc4 } from "./sc4store.js";
 import { clubOptions, pickClub } from "./sc4.js";
+import { getProfile, saveProfile, chatLimit } from "./users.js";
+import { recordAnalysis } from "./media.js";
+import { latestProgram, setProgramStatus } from "./programs.js";
+import { enqueueJob, pendingJob } from "./jobqueue.js";
 
 const MODEL = "claude-opus-5-5";
 const MEMORY_KEY = "chat_memory";
@@ -18,24 +22,49 @@ export const MEMORY_SIZE = 6;
 const MAX_ROUNDS = 6; // model calls per question (tool loop)
 const TIME_BUDGET_MS = 24_000; // Workers keep a request alive ~30 s after the webhook has answered LINE
 
-const STATIC_PROMPT = `You are Supawat's golf and health coach inside LINE, part of the "Road to Scratch" program
-(12 weeks, Bangkok). You know the program below and you can read and update his tracker with the tools.
+function coachPrompt(user) {
+  const name = user.name || user.displayName || "the user";
+  const golf = user.golfer !== false;
+  return `You are ${name}'s ${golf ? "golf and health" : "health"} coach inside LINE, part of the "Road to Scratch" program
+(12-week personal programs, Bangkok). You know their program below and can read and update their tracker with the tools.
 
 How to answer:
-- Reply in the language he writes in (Thai or English). This is a chat app: plain text, no markdown headings or tables,
-  short paragraphs or "-" lists, usually under 120 words unless he asks for detail.
-- Base advice on his data. Use the tools when the context below is not enough; don't guess numbers.
-- Follow the program rules (never miss twice, 20-minute version on bad days, drinking-night limits, round-day protocol,
-  sleep targets, gout/uric-acid care, sun protection).
-- Health: give general guidance only. For medication, uric-acid treatment, pain or injury, tell him to check with his doctor.
+- Reply in the language they write in (Thai or English). This is a chat app: plain text, no markdown headings or tables,
+  short paragraphs or "-" lists, usually under 120 words unless they ask for detail.
+- Base advice on their data, profile and coach notes. Use the tools when the context is not enough; don't guess numbers.
+- Follow their program's rules (never miss twice, 20-minute version on bad days, drinking-night limits, sleep targets,
+  and any health rules in the program).
+- Health: general guidance only. For medication, lab results, pain or injury, tell them to check with their doctor.
 
 Taking actions:
-- When he asks you to log or change something, call the matching tool, then say exactly what was saved (date and values).
+- When they ask you to log or change something, call the matching tool, then say exactly what was saved (date and values).
 - If a value is unclear (which day, which number), ask instead of guessing. Never invent data.
-- You cannot delete anything; point him to the dashboard for deletions.
+- You cannot delete anything; point them to the dashboard for deletions.
+- Keep the coach notes current: when you learn something lasting (a preference, a constraint, a pattern, a decision), call
+  update_coach_notes with the full revised notes. Don't record one-off details.
+- When they send a photo, call record_photo first (category, a short factual description, any numbers you can read), then
+  answer. Meal photos: comment on portion and balance${golf ? "" : ""}, and anything relevant to their health flags.
 
-Data notes: carry in yards, speeds in mph, SC4 side: + right / - left. Check-in fields: woke, trained (1 yes, 2 = 20-min
-version, 0 no), mobility, screens (screens off on time), drinks, practice (minutes), water (litres), energy (1-5).`;
+Data notes: check-in fields: woke, trained (1 yes, 2 = 20-min version, 0 no), mobility, screens (screens off on time),
+drinks, practice (minutes), water (litres), energy (1-5).${golf ? " Golf: carry in yards, speeds in mph, SC4 side: + right / - left." : ""}`;
+}
+
+function onboardingPrompt(user) {
+  const name = user.name || user.displayName || "the new user";
+  return `You are the Road to Scratch coach getting to know ${name}, a new user, inside LINE, so a personal 12-week program
+can be designed for them. Their questionnaire answers, health flags and coach notes are below.
+
+What to do:
+- Ask only the few follow-up questions that really matter for the program (unclear goals, details of health flags or
+  injuries, schedule conflicts, preferences). Ask one or two at a time; at most about four in total. Keep it friendly and short.
+- Save lasting facts with update_coach_notes (full revised notes each time).
+- When you have enough, call design_program with a short brief of the key facts, and tell them the draft will arrive in
+  LINE in a few minutes.
+- After a draft has been sent: if they want changes, call revise_program with exactly what to change; if they are happy,
+  call accept_program (or ask them to tap Accept). Then tell them their coach (the admin) will check it before it starts.
+- Health flags: be careful and kind; suggest checking with a doctor before starting if a flag is serious. Never diagnose.
+- Reply in their language (Thai or English), plain text for a chat app.`;
+}
 
 // ---- tools -------------------------------------------------------------------------------------
 
@@ -139,7 +168,9 @@ export async function runTool(ctx, name, input = {}) {
     }
     case "get_day_plan": {
       const date = dateOr(ctx, input.date);
-      return { result: fullPlanText(dayPlan(await ctx.program(), date)).join("\n\n") };
+      const program = await ctx.program();
+      if (!program) return { result: "No program yet." };
+      return { result: fullPlanText(dayPlan(program, date)).join("\n\n") };
     }
     case "get_sc4_stats": {
       const s = await getSc4(ctx);
@@ -207,37 +238,115 @@ export async function runTool(ctx, name, input = {}) {
       days[date] = { ...(days[date] || {}), ...slot };
       for (const d of Object.keys(days)) if (d < addDays(ctx.today(), -14)) delete days[d]; // keep the list short
       await setSetting(ctx.db, "program_overrides", { ...ov, days, updated: ctx.now().toISOString() });
-      ctx._program = null; // reload with the change
+      ctx.resetProgram(); // reload with the change
       const p = dayPlan(await ctx.program(), date);
       return { result: { date, am: p.am.label, pm: p.pm.label }, action: `plan ${date}: AM ${p.am.label} / PM ${p.pm.label}` };
+    }
+    case "update_coach_notes": {
+      const notes = text(input.notes, 2000) || "";
+      await saveProfile(ctx.db, ctx.uid, { notes }, ctx.now().toISOString());
+      return { result: "notes saved" };
+    }
+    case "record_photo": {
+      if (!ctx.photoId) throw new Error("there is no photo in this message");
+      await recordAnalysis(ctx.db, ctx.uid, ctx.photoId, { category: input.category, description: input.description, data: input.data });
+      return { result: "recorded", action: `photo: ${input.category}` };
+    }
+    case "design_program":
+    case "revise_program": {
+      if (await pendingJob(ctx.db, ctx.uid, "design")) return { result: "A draft is already being prepared; it will arrive shortly." };
+      const latest = await latestProgram(ctx.db, ctx.uid);
+      await enqueueJob(ctx.db, "design", ctx.uid, { brief: text(input.brief, 2000), changes: text(input.changes, 2000), previousId: name === "revise_program" && latest ? latest.id : null }, ctx.now().toISOString());
+      return { result: "queued: the draft will be sent in LINE in a few minutes", action: name === "design_program" ? "program design started" : "program revision started" };
+    }
+    case "accept_program": {
+      const latest = await latestProgram(ctx.db, ctx.uid);
+      if (!latest || latest.status !== "proposed") throw new Error("there is no draft waiting for acceptance");
+      await setProgramStatus(ctx.db, latest.id, "accepted", ctx.now().toISOString());
+      ctx.accepted = latest;
+      return { result: "accepted; the admin will review and activate it", action: "program accepted" };
     }
     default:
       throw new Error(`unknown tool ${name}`);
   }
 }
 
+const NOTES_TOOL = {
+  name: "update_coach_notes",
+  description: "Replace the coach notes about this person (lasting preferences, constraints, patterns, decisions). Give the complete revised notes, max ~1500 characters.",
+  input_schema: { type: "object", properties: { notes: S("string", "The full revised notes") }, required: ["notes"] },
+};
+TOOLS.push(NOTES_TOOL);
+
+export const PHOTO_TOOL = {
+  name: "record_photo",
+  description: "Record what the photo in this message shows, for their history and analytics.",
+  input_schema: { type: "object", properties: {
+    category: S("string", "What it is", { enum: ["meal", "drink", "body", "scale", "lab_result", "scorecard", "launch_monitor", "workout", "other"] }),
+    description: S("string", "Short factual description"),
+    data: S("object", "Numbers or items read from the photo, e.g. {\"weight\": 79.5} or {\"items\": [\"rice\", \"fried chicken\"]}"),
+  }, required: ["category", "description"] },
+};
+
+export const ONBOARDING_TOOLS = [
+  NOTES_TOOL,
+  { name: "design_program", description: "Start designing the first program draft (takes a few minutes; the user gets it in LINE).",
+    input_schema: { type: "object", properties: { brief: S("string", "Key facts for the designer beyond the questionnaire") }, required: ["brief"] } },
+  { name: "revise_program", description: "Ask for a revised draft with the user's requested changes.",
+    input_schema: { type: "object", properties: { changes: S("string", "Exactly what to change") }, required: ["changes"] } },
+  { name: "accept_program", description: "The user accepts the latest draft. It then goes to the admin for a final check.",
+    input_schema: { type: "object", properties: {}, required: [] } },
+];
+
+const GOLF_TOOLS = new Set(["get_sc4_stats", "find_club", "log_round"]);
+
+/** Tools for this person and situation (golf tools only for golfers). */
+export function toolsFor(ctx, { onboarding = false, photo = false } = {}) {
+  if (onboarding) return photo ? [...ONBOARDING_TOOLS, PHOTO_TOOL] : ONBOARDING_TOOLS;
+  const base = ctx.isGolfer() ? TOOLS : TOOLS.filter(t => !GOLF_TOOLS.has(t.name));
+  return photo ? [...base, PHOTO_TOOL] : base;
+}
+
 // ---- context ------------------------------------------------------------------------------------
 
 /** Stable, cacheable part of the system prompt: instructions + the full program. */
-export function staticSystem(program) {
-  return `${STATIC_PROMPT}\n\nPROGRAM (program.json; "||" in an item separates the YouTube search words):\n${JSON.stringify(program)}`;
+export function staticSystem(program, user, { onboarding = false } = {}) {
+  if (onboarding) return onboardingPrompt(user);
+  return `${coachPrompt(user)}\n\nPROGRAM (program.json; "||" in an item separates the YouTube search words):\n${JSON.stringify(program)}`;
+}
+
+function profileText(profile) {
+  const a = profile.answers || {};
+  return [
+    `Profile (questionnaire): ${Object.keys(a).length ? JSON.stringify(a) : "not answered yet"}`,
+    `Health flags: ${(profile.flags || []).join(", ") || "none"}`,
+    `Coach notes: ${profile.notes || "(none yet)"}`,
+  ].join("\n");
 }
 
 /** Changing part: today's plan and recent data. Built fresh for every question. */
-export async function contextText(ctx) {
-  const program = await ctx.program();
+export async function contextText(ctx, { onboarding = false } = {}) {
+  const profile = await getProfile(ctx.db, ctx.uid);
   const today = ctx.today();
+  if (onboarding) {
+    const latest = await latestProgram(ctx.db, ctx.uid);
+    return [`Now: ${fmtDay(today)} ${today} (Bangkok).`, profileText(profile),
+      `Program draft: ${latest ? `version ${latest.version}, status ${latest.status}. Summary: ${latest.summary}` : "none yet"}`].join("\n");
+  }
+  const program = await ctx.program();
+  if (!program) return [`Now: ${fmtDay(today)} ${today} (Bangkok).`, profileText(profile), "No active program."].join("\n");
   const plan = dayPlan(program, today);
   const mon = mondayOf(today);
   const [daily, rounds, body, sc4] = await Promise.all([
     listDocs(ctx.db, "daily", { since: addDays(today, -13), until: today }),
     listDocs(ctx.db, "rounds", { limit: 5 }),
     listDocs(ctx.db, "body", { limit: 3 }),
-    getSc4(ctx).catch(() => null),
+    ctx.isGolfer() ? getSc4(ctx).catch(() => null) : null,
   ]);
   const week = rangeStats(daily, rounds, mon, today);
   const strip = o => compact({ ...o, id: undefined, created: undefined, updated: undefined, week: undefined });
   const lines = [
+    profileText(profile),
     `Now: ${fmtDay(today)} ${today}, ${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][weekday(today)]} (Bangkok).`,
     `Program week ${plan.week}${plan.phase ? ` (${plan.phase.name})` : ""}. Focus: ${plan.focus}.`,
     `Today: AM ${plan.am.label} | PM ${plan.pm.label}. Bed ${plan.sleep.bed}, wake ${plan.sleep.wake}, screens off ${plan.screensOff}. Max drinking nights this week: ${plan.drinkLimit}.`,
@@ -265,7 +374,7 @@ export function trimMemory(messages, size = MEMORY_SIZE) {
 export const clearMemory = ctx => setSetting(ctx.db, MEMORY_KEY, { messages: [] });
 
 async function underDailyLimit(ctx) {
-  const limit = Number(ctx.env.CHAT_DAILY_LIMIT || 30);
+  const limit = chatLimit(ctx.env, ctx.user);
   const day = ctx.today();
   const c = (await getSetting(ctx.db, COUNT_KEY)) || {};
   const n = c.day === day ? c.count || 0 : 0;
@@ -280,17 +389,21 @@ async function underDailyLimit(ctx) {
  * Answers one LINE message. Returns { text, actions }. Never throws for API problems - those become
  * a short apology so the user always gets a reply.
  */
-export async function askCoach(ctx, question) {
-  if (!(await underDailyLimit(ctx))) return { text: `Daily limit of ${ctx.env.CHAT_DAILY_LIMIT || 30} coach questions reached. Ask again tomorrow, or use the commands (help).`, actions: [] };
+export async function askCoach(ctx, question, { image = null, photoId = null, onboarding = false } = {}) {
+  if (!(await underDailyLimit(ctx))) return { text: `Daily limit of ${chatLimit(ctx.env, ctx.user)} coach questions reached. Ask again tomorrow, or use the commands (help).`, actions: [] };
+  ctx.photoId = photoId;
   const started = Date.now();
   const client = new Anthropic({ apiKey: ctx.env.ANTHROPIC_API_KEY, timeout: 20_000, maxRetries: 1, ...(ctx.fetch ? { fetch: ctx.fetch } : {}) });
   const memory = trimMemory(((await getSetting(ctx.db, MEMORY_KEY)) || {}).messages || []);
-  const program = await ctx.program();
+  const program = onboarding ? null : await ctx.program();
   const system = [
-    { type: "text", text: staticSystem(program), cache_control: { type: "ephemeral" } },
-    { type: "text", text: `CURRENT DATA\n${await contextText(ctx)}` },
+    { type: "text", text: staticSystem(program, ctx.user, { onboarding }), cache_control: { type: "ephemeral" } },
+    { type: "text", text: `CURRENT DATA\n${await contextText(ctx, { onboarding })}` },
   ];
-  const messages = [...memory.map(m => ({ role: m.role, content: m.text })), { role: "user", content: question }];
+  const tools = toolsFor(ctx, { onboarding, photo: !!image });
+  const userContent = image ? [image, { type: "text", text: question || "(photo)" }] : question;
+  const messages = [...memory.map(m => ({ role: m.role, content: m.text })), { role: "user", content: userContent }];
+  const usage = { model: MODEL, tokensIn: 0, tokensOut: 0 };
   const actions = [];
   let answer = null;
 
@@ -304,10 +417,13 @@ export async function askCoach(ctx, question) {
         fallbacks: "default",
         output_config: { effort: "low" }, // chat: quick, consolidated answers
         system,
-        tools: TOOLS,
+        tools,
         messages,
       });
       console.log("coach usage", JSON.stringify(res.usage));
+      usage.model = res.model || MODEL;
+      usage.tokensIn += (res.usage.input_tokens || 0) + (res.usage.cache_read_input_tokens || 0) + (res.usage.cache_creation_input_tokens || 0);
+      usage.tokensOut += res.usage.output_tokens || 0;
       if (res.stop_reason === "refusal") { answer = "Sorry, I can't help with that one. Try asking another way."; break; }
       const said = res.content.filter(b => b.type === "text").map(b => b.text).join("").trim();
       if (res.stop_reason === "tool_use") {
@@ -339,7 +455,8 @@ export async function askCoach(ctx, question) {
   if (!answer) answer = actions.length ? "Done." : "That took too long. Please ask again, maybe in a shorter way.";
   if (actions.length && !/sav|log|บันทึก|changed|moved|updated/i.test(answer)) answer += `\n\n(Saved: ${actions.join("; ")})`;
 
-  const remembered = trimMemory([...memory, { role: "user", text: question.slice(0, 2000) }, { role: "assistant", text: answer.slice(0, 2000) }]);
+  const asked = `${image ? "[photo] " : ""}${question || ""}`.trim();
+  const remembered = trimMemory([...memory, { role: "user", text: asked.slice(0, 2000) }, { role: "assistant", text: answer.slice(0, 2000) }]);
   await setSetting(ctx.db, MEMORY_KEY, { messages: remembered, updated: ctx.now().toISOString() });
-  return { text: answer, actions };
+  return { text: answer, actions, usage, accepted: ctx.accepted || null };
 }

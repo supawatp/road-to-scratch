@@ -86,7 +86,7 @@ test("check-in tool merges into the existing row; round tool needs front and bac
     useTool("log_checkin", { drinks: 0, energy: 4 }), say("Updated today's check-in."),
     useTool("log_round", { front: 44, back: 46, money: -2000, course: "Alpine" }), say("Round saved: 90."),
   ]);
-  t.env.DB.raw.prepare("INSERT INTO daily (date, woke, trained, drinks) VALUES ('2026-10-23', 1, 1, 2)").run();
+  t.env.DB.raw.prepare("INSERT INTO daily (user_id, date, woke, trained, drinks) VALUES ('U0123456789abcdef0123456789abcdef', '2026-10-23', 1, 1, 2)").run();
   await t.send(textEvent("no drinks today actually, energy 4"));
   const d = t.env.DB.raw.prepare("SELECT * FROM daily WHERE date = '2026-10-23'").get();
   assert.deepEqual([d.woke, d.trained, d.drinks, d.energy, d.week], [1, 1, 0, 4, 1]);
@@ -102,7 +102,7 @@ test("change_day_plan moves a session for one date; `today` shows it", async () 
   const txt = t.lastReply();
   assert.match(txt, /After waking: Rest/);
   assert.match(txt, /Evening: Strength C/);
-  const ov = JSON.parse(t.env.DB.raw.prepare("SELECT json FROM settings WHERE key = 'program_overrides'").get().json);
+  const ov = JSON.parse(t.env.DB.raw.prepare("SELECT json FROM settings WHERE key = 'u:U0123456789abcdef0123456789abcdef:program_overrides'").get().json);
   assert.deepEqual(ov.days["2026-10-23"], { amKey: "rest", pmKey: "strC" });
 });
 
@@ -114,7 +114,7 @@ test("memory: the last 6 text messages are sent back, starting with a user messa
   assert.deepEqual(last.map(m => `${m.role}:${m.content}`), [
     "user:question 2", "assistant:answer 2", "user:question 3", "assistant:answer 3", "user:question 4", "assistant:answer 4", "user:question 5",
   ]);
-  const mem = JSON.parse(t.env.DB.raw.prepare("SELECT json FROM settings WHERE key = 'chat_memory'").get().json).messages;
+  const mem = JSON.parse(t.env.DB.raw.prepare("SELECT json FROM settings WHERE key = 'u:U0123456789abcdef0123456789abcdef:chat_memory'").get().json).messages;
   assert.equal(mem.length, MEMORY_SIZE);
   assert.deepEqual(trimMemory([{ role: "assistant", text: "a" }, { role: "user", text: "b" }]), [{ role: "user", text: "b" }]);
 });

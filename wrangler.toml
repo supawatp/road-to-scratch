@@ -14,7 +14,8 @@ command = "npm run build"
 #   08:45 BKK daily   -> morning plan
 #   21:30 BKK daily   -> evening check-in
 #   20:00 BKK Sunday  -> weekly summary (+ Claude review if ANTHROPIC_API_KEY is set)
-crons = ["45 1 * * *", "30 14 * * *", "0 13 * * SUN"]
+#   every minute      -> background jobs (program design with Claude)
+crons = ["45 1 * * *", "30 14 * * *", "0 13 * * SUN", "* * * * *"]
 
 [vars]
 TZ = "Asia/Bangkok"
@@ -24,6 +25,9 @@ PUSH_MONTHLY_LIMIT = "250"
 PUBLIC_URL = ""
 # Max questions per day to the LINE coach (Claude), a guard against runaway API cost.
 CHAT_DAILY_LIMIT = "30"
+# LIFF app (sign-up, questionnaire, personal dashboard) and its LINE Login channel. Not secrets.
+LIFF_ID = ""
+LINE_LOGIN_CHANNEL_ID = ""
 
 # Secrets (set in the Cloudflare dashboard or with `wrangler secret put`, never in this file):
 #   LINE_CHANNEL_SECRET, LINE_CHANNEL_ACCESS_TOKEN, OWNER_LINE_USER_ID, API_TOKEN, ANTHROPIC_API_KEY (optional)
@@ -33,6 +37,11 @@ binding = "DB"
 database_name = "road-to-scratch"
 # Paste the Database ID from Workers & Pages > D1 > road-to-scratch here (an identifier, not a secret).
 database_id = "6b3a3983-184d-4dfc-a90e-265be37da122"
+
+# Photos and files users send in LINE.
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "road-to-scratch-media"
 
 [observability]
 enabled = true

@@ -9,13 +9,18 @@ const STRANGER = "Uffffffffffffffffffffffffffffffff";
 
 const lastReply = line => line.replies().at(-1).body.messages;
 
-test("non-owner users are ignored (no reply, no data)", async () => {
+test("unknown users get only a sign-up invitation: no plan, no check-in data", async () => {
   const { app, line } = makeApp(FRI_2135);
   const env = makeEnv();
   const res = await app.fetch(webhookRequest([textEvent("hello", STRANGER), textEvent("today", STRANGER), postbackEvent("ci:woke:1", STRANGER)]), env);
   assert.equal(res.status, 200);
-  assert.equal(line.calls.length, 0);
+  const replies = line.replies();
+  assert.equal(replies.length, 3, "every message gets the invitation");
+  for (const r of replies) assert.match(JSON.stringify(r.body.messages), /Sign-up opens soon|Sign up/);
   assert.equal(env.DB.raw.prepare("SELECT COUNT(*) n FROM convo").get().n, 0);
+  assert.equal(env.DB.raw.prepare("SELECT COUNT(*) n FROM daily").get().n, 0);
+  assert.equal(env.DB.raw.prepare("SELECT status FROM users WHERE id = ?").get(STRANGER).status, "new");
+  assert.equal(env.DB.raw.prepare("SELECT COUNT(*) n FROM messages WHERE user_id = ? AND dir = 'in'").get(STRANGER).n, 3, "everything is logged");
 });
 
 test("'hello' returns the user ID only before OWNER_LINE_USER_ID is set", async () => {

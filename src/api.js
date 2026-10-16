@@ -1,16 +1,19 @@
 // REST API: /api/v1/:collection[/:id] and /api/v1/summary. Bearer API_TOKEN or login cookie.
-import { isAuthorized } from "./auth.js";
+import { isAuthorized, readCookie } from "./auth.js";
+import { getUser, verifySession, SESSION_COOKIE, isAdmin } from "./users.js";
+import { handleAdmin } from "./admin.js";
+import { handleMe } from "./me.js";
 import { COLLECTIONS, isCollection, listDocs, getDoc, putDoc, deleteDoc, isInternalSetting } from "./db.js";
 import { buildSummary } from "./context.js";
 import { isYmd, weekOf } from "./dates.js";
 import { ensureShots, importCsv, getSc4, tagSession, deleteSession, invalidateSc4 } from "./sc4store.js";
 
-const json = (data, status = 200) => new Response(JSON.stringify(data), {
+export const json = (data, status = 200) => new Response(JSON.stringify(data), {
   status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
 });
-const error = (status, message, code) => json({ error: message, ...(code ? { code } : {}) }, status);
+export const error = (status, message, code) => json({ error: message, ...(code ? { code } : {}) }, status);
 
-async function readJson(request) {
+export async function readJson(request) {
   const text = await request.text();
   if (text.length > 256 * 1024) throw new Error("body too large");
   const data = JSON.parse(text || "{}");
@@ -29,7 +32,7 @@ async function prepare(ctx, coll, id, doc) {
   const nowIso = ctx.now().toISOString();
   if (coll === "daily") {
     const program = await ctx.program();
-    return { ...doc, date: id, week: weekOf(id, program.start), updated: doc.updated || nowIso };
+    return { ...doc, date: id, week: program ? weekOf(id, program.start) : null, updated: doc.updated || nowIso };
   }
   if (coll === "coach") return { ...doc, date: id, created: doc.created || nowIso };
   if (coll === "settings") return doc;
@@ -37,10 +40,39 @@ async function prepare(ctx, coll, id, doc) {
   return { ...doc, created: doc.created || nowIso };
 }
 
-export async function handleApi(request, ctx, url) {
-  if (!(await isAuthorized(request, ctx.env))) return error(401, "unauthorized", "unauthenticated");
+/**
+ * Who is calling: the admin (API_TOKEN bearer or login cookie; acts as the owner, or as ?as=<user id>)
+ * or a LINE user (session cookie from LIFF). Returns { admin, user } or null.
+ */
+export async function authenticate(request, env, url) {
+  if (await isAuthorized(request, env)) {
+    const as = url && url.searchParams.get("as");
+    const owner = (env.OWNER_LINE_USER_ID || "").trim();
+    const user = await getUser(env.DB, as || owner);
+    return { admin: true, user };
+  }
+  const uid = await verifySession(env, readCookie(request, SESSION_COOKIE)).catch(() => null);
+  if (!uid) return null;
+  const user = await getUser(env.DB, uid);
+  if (!user || ["disabled", "left"].includes(user.status)) return null;
+  return { admin: isAdmin(user), user };
+}
+
+export async function handleApi(request, base, url, waitUntil = p => p) {
+  const auth = await authenticate(request, base.env, url);
+  if (!auth) return error(401, "unauthorized", "unauthenticated");
   const parts = url.pathname.replace(/^\/api\/v1\/?/, "").split("/").filter(Boolean).map(decodeURIComponent);
   const method = request.method;
+
+  if (parts[0] === "admin") {
+    if (!auth.admin) return error(403, "admin only", "permission_denied");
+    return handleAdmin(request, base, url, parts.slice(1), waitUntil);
+  }
+  if (!auth.user) return error(503, "OWNER_LINE_USER_ID is not configured", "unavailable");
+  const ctx = base.forUser(auth.user);
+  if (parts[0] === "me") return handleMe(request, ctx, url, parts.slice(1), waitUntil);
+  // tracker data needs an approved account (onboarding users may read, e.g. their draft on the dashboard)
+  if (!["active", "onboarding"].includes(auth.user.status) && !auth.admin) return error(403, "account not active yet", "permission_denied");
 
   if (parts[0] === "summary" && parts.length === 1) {
     if (method !== "GET") return error(405, "method not allowed");
@@ -52,7 +84,6 @@ export async function handleApi(request, ctx, url) {
 
   const [coll, id] = parts;
   if (!isCollection(coll) || parts.length > 2) return error(404, "not found");
-  if (coll === "shots") await ensureShots(ctx.db);
 
   try {
     if (!id) {

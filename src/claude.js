@@ -32,12 +32,13 @@ const REVIEW_SCHEMA = {
   },
 };
 
-const SYSTEM = `You are a practical golf and health coach for Supawat (Bangkok). Each Sunday you review the last 14 days of tracker data
+const systemFor = (name, golfer) => `You are a practical ${golfer ? "golf and health" : "health"} coach for ${name} (Bangkok). Each Sunday you review the last 14 days of tracker data
 against the 12-week Road to Scratch program and write next week's coach note and small plan tweaks.
-Be specific and brief. Respect the program's rules (gout: uric acid, alcohol limits, never miss twice, round-day protocol).
+Be specific and brief. Respect the program's rules (alcohol limits, never miss twice, health rules in the program).
 Only tighten or loosen targets when the data clearly supports it; otherwise repeat the planned values.
 The summary may include SC4 launch-monitor data (carry in yards, club speed in mph, side: + right / - left) with
-automatic insights. Use it to connect practice results with sleep, drinks and energy, and to suggest one practice focus.`;
+automatic insights. Use it to connect practice results with sleep, drinks and energy, and to suggest one practice focus.
+Write in the same language as the program (Thai or English).`;
 
 /** Strips session exercise lists so the prompt stays small. */
 function programBrief(program, nextWeek) {
@@ -51,15 +52,15 @@ function programBrief(program, nextWeek) {
   };
 }
 
-export async function weeklyReview({ apiKey, summary, program, nextWeek }) {
-  const client = new Anthropic({ apiKey });
+export async function weeklyReview({ apiKey, summary, program, nextWeek, user = {}, fetch: fetchImpl }) {
+  const client = new Anthropic({ apiKey, ...(fetchImpl ? { fetch: fetchImpl } : {}) });
   const res = await client.beta.messages.create({
     model: MODEL,
     max_tokens: 16000,
     betas: ["server-side-fallback-2026-07-01"],
     fallbacks: "default",
     output_config: { effort: "medium", format: { type: "json_schema", schema: REVIEW_SCHEMA } },
-    system: SYSTEM,
+    system: systemFor(user.name || user.displayName || "the user", user.golfer !== false),
     messages: [{
       role: "user",
       content: `Week ${nextWeek} starts tomorrow.\n\nPROGRAM:\n${JSON.stringify(programBrief(program, nextWeek))}\n\nTRACKER SUMMARY (last 14 days):\n${JSON.stringify(summary)}`,

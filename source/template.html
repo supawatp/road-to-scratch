@@ -218,7 +218,7 @@ a.yt:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
       <h3>Money</h3><ul class="ruleslist" id="r-money"></ul>
       <div class="row"><label class="f" style="max-width:220px">My max loss per round (THB)<input type="number" id="cap" min="0" step="1000" inputmode="numeric" placeholder="Set your number"></label><button class="btn small ghost" id="cap-save">Save</button><span class="status" id="cap-status"></span></div>
       <hr class="rule">
-      <h3>Food &amp; gout</h3><ul class="ruleslist" id="r-food"></ul>
+      <h3>Food</h3><ul class="ruleslist" id="r-food"></ul>
       <hr class="rule">
       <h3>Sun &amp; UV</h3><ul class="ruleslist" id="r-sun"></ul>
     </div>
@@ -375,7 +375,10 @@ a.yt:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 </div>
 
 <script>
-const P = /*PROGRAM*/null;
+// The Worker serves each user's own program in window.RTS_PROGRAM; the built-in one is the fallback.
+const P = window.RTS_PROGRAM || /*PROGRAM*/null;
+const ME = window.RTS ? window.RTS.user : { golfer: true, admin: true };
+const GOLF = P.golf !== false && ME.golfer !== false;
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -467,7 +470,7 @@ function renderToday() {
   }
   if (t.changed) html += `<p class="muted" style="margin:0;font-size:13px">Changed from the standard plan in LINE.</p>`;
   html += sessionHTML(t.amKey, "AM") + sessionHTML(t.pmKey, "PM");
-  if (![t.amKey, t.pmKey].some(k => k === "mob" || (k || "").startsWith("pil"))) html += sessionHTML("mob", "Daily");
+  if (P.sessions.mob && ![t.amKey, t.pmKey].some(k => k === "mob" || (k || "").startsWith("pil"))) html += sessionHTML("mob", "Daily");
   $("#today-sessions").innerHTML = html;
 }
 let ciDirty = false;
@@ -573,6 +576,13 @@ function renderPlan() {
   $("#c-course").innerHTML = P.course.map(i => `<li>${esc(i)}</li>`).join("");
   $("#r-food").innerHTML = P.food.map(i => `<li>${esc(i)}</li>`).join("");
   $("#r-sun").innerHTML = P.sun.map(i => `<li>${esc(i)}</li>`).join("");
+  // Personal programs may leave some rule lists empty (e.g. no golf): hide those headings.
+  ["r-mind", "r-course", "r-money", "r-food", "r-sun"].forEach(id => {
+    const ul = $("#" + id), empty = !ul.children.length || (!GOLF && (id === "r-course" || id === "r-money"));
+    [ul.previousElementSibling, ul, ul.nextElementSibling].forEach(el => { if (el && (el === ul || el.tagName === "H3" || el.classList.contains("rule") || el.classList.contains("row"))) el.hidden = empty; });
+  });
+  $("#rules").hidden = ["r-mind", "r-course", "r-money", "r-food", "r-sun"].every(id => $("#" + id).hidden);
+  if (!P.tests || !P.tests.items || !P.tests.items.length) $("#tests-title").closest(".card").hidden = true;
 }
 $("#cap-save").addEventListener("click", async () => {
   if (!S.db) return;
@@ -908,11 +918,19 @@ $("#sc4-upload").addEventListener("click", async () => {
 /* ---------- boot ---------- */
 function renderAll() { renderWeek(); renderRounds(); renderTests(); renderBody(); renderCharts(); }
 function boot() {
+  if (!GOLF) {
+    // Health-only programs: no golf tabs or golf charts.
+    ["rounds", "clubs", "sc4", "tests"].forEach(t => { const b = $(`nav.tabs button[data-tab="${t}"]`); if (b) b.hidden = true; });
+    ["#ch-score", "#ch-speed"].forEach(id => { const c = $(id).closest(".card"); if (c) c.hidden = true; });
+    $(".eyebrow").textContent = "Health · 12-week program";
+  }
+  if (ME.admin) $("#hdr-sub").insertAdjacentHTML("afterend", '<p class="sub" style="font-size:13px"><a href="/admin" style="color:var(--accent)">Admin portal</a></p>');
   headerText(); renderToday(); renderPlan();
   ["#ci-date", "#rd-date", "#ts-date", "#bd-date"].forEach(id => $(id).value = todayStr);
   loadCheckin(todayStr); renderAll(); renderYardTable(true); renderPicker(); renderSc4();
   let tab = "today"; try { tab = localStorage.getItem("rts-tab") || "today"; } catch (e) {}
   if (location.hash && $(`nav.tabs button[data-tab="${location.hash.slice(1)}"]`)) tab = location.hash.slice(1);
+  const tb = $(`nav.tabs button[data-tab="${tab}"]`); if (!tb || tb.hidden) tab = "today";
   showTab(tab);
 }
 window.claude?.hot?.snapshot?.(() => ({ ci: ciDirty ? { date: $("#ci-date").value, ...readCi() } : null }));

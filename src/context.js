@@ -1,43 +1,76 @@
 // Shared helpers that need the database: program loading, stats, summary, guarded pushes.
 import { applyOverrides, dayPlan } from "./program.js";
 import { DEFAULT_TZ, localDate, addDays, mondayOf, monthKey } from "./dates.js";
-import { getSetting, setSetting, listDocs } from "./db.js";
-import { LineClient } from "./line.js";
+import { getSetting, setSetting, listDocs, scopedDb } from "./db.js";
+import { LineClient, toMessages } from "./line.js";
+import { isAdmin } from "./users.js";
+import { logOutgoing } from "./msglog.js";
+import { activeProgram } from "./programs.js";
 import { hits } from "./checkin.js";
 import { getSc4 } from "./sc4store.js";
 
+/**
+ * Base context for one request or cron run. `forUser(user)` returns a child context whose `db` is
+ * scoped to that user, with that user's program, replies and pushes (all logged to `messages`).
+ */
 export function makeContext(env, { program, fetchImpl, now } = {}) {
   const tz = env.TZ || DEFAULT_TZ;
   return {
-    env, tz, db: env.DB,
+    env, tz, db: env.DB, uid: null, user: null,
     line: new LineClient(env.LINE_CHANNEL_ACCESS_TOKEN, fetchImpl),
-    fetch: fetchImpl, // also used for the Anthropic API (tests inject a fake)
+    fetch: fetchImpl, // also used for the Anthropic API and LINE Login (tests inject a fake)
     bundledProgram: program,
     now: now || (() => new Date()),
     today() { return localDate(this.now(), tz); },
-    _program: null,
-    async program() {
-      if (!this._program) {
-        const [stored, overrides] = await Promise.all([getSetting(this.db, "program"), getSetting(this.db, "program_overrides")]);
-        const base = stored && Array.isArray(stored.weeks) && stored.template && stored.sessions ? stored : this.bundledProgram;
-        this._program = applyOverrides(base, overrides);
-      }
-      return this._program;
-    },
+    forUser(user) { return userContext(this, user); },
   };
 }
 
+function userContext(base, user) {
+  const ctx = Object.create(base);
+  ctx.user = user;
+  ctx.uid = user.id;
+  ctx.db = scopedDb(base.env.DB, user.id);
+  ctx._loaded = false;
+  ctx._program = null;
+  /** This user's program (active version, or the bundled program for the admin), with overrides. Null if none yet. */
+  ctx.program = async function () {
+    if (!this._loaded) {
+      let program = null;
+      const active = await activeProgram(this.db, this.uid);
+      if (active) program = active.program;
+      else if (isAdmin(this.user)) {
+        const stored = await getSetting(this.db, "program");
+        program = stored && Array.isArray(stored.weeks) && stored.template && stored.sessions ? stored : this.bundledProgram;
+      }
+      this._program = program ? applyOverrides(program, await getSetting(this.db, "program_overrides")) : null;
+      this._loaded = true;
+    }
+    return this._program;
+  };
+  ctx.resetProgram = function () { this._loaded = false; this._program = null; };
+  ctx.isGolfer = function () { return this.user.golfer !== false; };
+  /** Reply (free) and log it. */
+  ctx.reply = async function (replyToken, messages, meta = {}) {
+    const msgs = toMessages(messages);
+    await this.line.reply(replyToken, msgs);
+    await logOutgoing(this.db, this.uid, msgs.slice(0, 5), this.now().toISOString(), { ...meta, kind: "reply" }).catch(e => console.error("log out", e));
+  };
+  return ctx;
+}
+
 export async function dashboardUrl(ctx) {
+  if (ctx.user && !isAdmin(ctx.user) && ctx.env.LIFF_ID) return `https://liff.line.me/${ctx.env.LIFF_ID}/app`;
   const base = (ctx.env.PUBLIC_URL || (await getSetting(ctx.db, "origin")) || "").replace(/\/+$/, "");
   return /^https:\/\//.test(base) ? base + "/" : "";
 }
 
 /**
- * Push to the owner unless this month's push count has reached PUSH_MONTHLY_LIMIT.
- * Returns true if sent. Replies are free and are not counted.
+ * Push to this context's user unless the OA's push count this month has reached PUSH_MONTHLY_LIMIT
+ * (the LINE quota is shared by all users). Returns true if sent. Replies are free and not counted.
  */
-export async function guardedPush(ctx, messages) {
-  const to = ctx.env.OWNER_LINE_USER_ID;
+export async function guardedPush(ctx, messages, meta = {}) {
+  const to = ctx.uid;
   if (!to) return false;
   const limit = Number(ctx.env.PUSH_MONTHLY_LIMIT || 250);
   const month = monthKey(ctx.today());
@@ -47,8 +80,10 @@ export async function guardedPush(ctx, messages) {
     console.warn(`push skipped: ${count} pushes already sent in ${month} (limit ${limit})`);
     return false;
   }
-  await ctx.line.push(to, messages);
+  const msgs = toMessages(messages);
+  await ctx.line.push(to, msgs);
   await setSetting(ctx.db, "push_count", { month, count: count + 1 });
+  await logOutgoing(ctx.db, to, msgs.slice(0, 5), ctx.now().toISOString(), { ...meta, kind: "push" }).catch(e => console.error("log out", e));
   return true;
 }
 
@@ -84,12 +119,13 @@ export async function buildSummary(ctx, days = 14) {
     listDocs(ctx.db, "tests", { since: from, until: to }),
     listDocs(ctx.db, "body", { since: from, until: to }),
   ]);
-  const plan = dayPlan(program, to);
+  const plan = program ? dayPlan(program, to) : null;
   const sc4 = await getSc4(ctx).catch(e => { console.error("sc4 summary", e); return null; });
   const strip = o => Object.fromEntries(Object.entries(o).filter(([k, v]) => v != null && v !== "" && k !== "id" && k !== "created" && k !== "updated"));
   return {
-    generated: ctx.now().toISOString(), tz: ctx.tz, today: to, week: plan.week,
-    phase: plan.phase ? plan.phase.name : null, focus: plan.focus, sleep: plan.sleep, drinkLimit: plan.drinkLimit,
+    generated: ctx.now().toISOString(), tz: ctx.tz, today: to, user: ctx.user ? { name: ctx.user.name, golfer: ctx.user.golfer } : null,
+    week: plan ? plan.week : null, phase: plan && plan.phase ? plan.phase.name : null, focus: plan ? plan.focus : null,
+    sleep: plan ? plan.sleep : null, drinkLimit: plan ? plan.drinkLimit : null,
     stats: rangeStats(daily, rounds, from, to),
     thisWeek: rangeStats(daily, rounds, mondayOf(to), to),
     daily: daily.map(strip).sort((a, b) => a.date.localeCompare(b.date)),

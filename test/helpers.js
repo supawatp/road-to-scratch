@@ -19,10 +19,23 @@ class Stmt {
   async run() { const r = this.db.prepare(this.sql).run(...this.args); return { meta: { changes: Number(r.changes) } }; }
 }
 
+/** D1-style adapter around a node:sqlite database. batch() is atomic, like D1. */
+export function wrapD1(db) {
+  return {
+    prepare: sql => new Stmt(db, sql),
+    batch: async stmts => {
+      db.exec("BEGIN");
+      try { const out = []; for (const st of stmts) out.push(await st.run()); db.exec("COMMIT"); return out; }
+      catch (e) { db.exec("ROLLBACK"); throw e; }
+    },
+    raw: db,
+  };
+}
+
 export function makeD1() {
   const db = new DatabaseSync(":memory:");
   db.exec(schema);
-  return { prepare: sql => new Stmt(db, sql), batch: async stmts => { const out = []; for (const st of stmts) out.push(await st.run()); return out; }, raw: db };
+  return wrapD1(db);
 }
 
 export const SECRET = "test-channel-secret";
