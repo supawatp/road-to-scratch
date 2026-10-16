@@ -26,8 +26,8 @@ PUBLIC_URL = ""
 # Max questions per day to the LINE coach (Claude), a guard against runaway API cost.
 CHAT_DAILY_LIMIT = "30"
 # LIFF app (sign-up, questionnaire, personal dashboard) and its LINE Login channel. Not secrets.
-LIFF_ID = ""
-LINE_LOGIN_CHANNEL_ID = ""
+LIFF_ID = "2012057136-D9ohRRNc"
+LINE_LOGIN_CHANNEL_ID = "2012057136"
 
 # Secrets (set in the Cloudflare dashboard or with `wrangler secret put`, never in this file):
 #   LINE_CHANNEL_SECRET, LINE_CHANNEL_ACCESS_TOKEN, OWNER_LINE_USER_ID, API_TOKEN, ANTHROPIC_API_KEY (optional)
