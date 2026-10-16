@@ -47,14 +47,19 @@ async function api(path, body) {
   if (!r.ok) { const e = new Error(j.error || ("HTTP " + r.status)); e.details = j.errors; throw e; }
   return j;
 }
-function fail(msg) { app.innerHTML = '<div class="eyebrow">Road to Scratch</div><h1>' + T("Something went wrong", "เกิดข้อผิดพลาด") + '</h1><p class="err">' + esc(msg) + '</p>'; }
+function report(msg) {
+  try { navigator.sendBeacon("/liff/log", JSON.stringify({ msg: String(msg).slice(0, 500), href: location.href.slice(0, 300), inClient: !!(window.liff && liff.isInClient && liff.isInClient()), ua: navigator.userAgent.slice(0, 200) })); } catch (e) {}
+}
+function fail(msg) { report(msg); app.innerHTML = '<div class="eyebrow">Road to Scratch</div><h1>' + T("Something went wrong", "เกิดข้อผิดพลาด") + '</h1><p class="err">' + esc(msg) + '</p>'; }
 function closeBtn() { return '<div class="bar"><button onclick="liff.closeWindow()">' + T("Close", "ปิด") + '</button></div>'; }
 
 async function start() {
   if (!LIFF_ID) return fail("LIFF_ID is not configured on the server.");
   await liff.init({ liffId: LIFF_ID });
-  if (!liff.isLoggedIn()) { liff.login({ redirectUri: location.href }); return; }
+  // Outside LINE, log in with LINE's default redirect (the LIFF endpoint); inside LINE this is automatic.
+  if (!liff.isLoggedIn()) { report("login redirect (not logged in)"); liff.login(); return; }
   const idToken = liff.getIDToken();
+  if (!idToken) return fail(T("LINE didn't share your login. Ask the coach to add the 'openid' scope to the LIFF app.", "LINE ไม่ได้ส่งข้อมูลล็อกอิน ให้โค้ชเพิ่ม scope 'openid' ในแอป LIFF"));
   await api("/auth/liff", { idToken });
   ME = await api("/api/v1/me");
   if (ME.user.lang) LANG = ME.user.lang;

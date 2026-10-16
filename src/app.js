@@ -61,6 +61,12 @@ export function createApp({ program, dashboardHtml, fetchImpl, now } = {}) {
         const token = await signSession(env, user.id, ctx.now().getTime());
         return jsonResponse({ ok: true, status: user.status }, 200, { "set-cookie": sessionCookieHeader(token, url.protocol === "https:") });
       }
+      if (url.pathname === "/liff/log" && request.method === "POST") {
+        // Errors from the LIFF page (it runs on users' phones), so they show up in the Worker logs.
+        const t = (await request.text()).slice(0, 2000);
+        console.warn("LIFF client:", t);
+        return new Response(null, { status: 204 });
+      }
       if (url.pathname === "/liff" || url.pathname.startsWith("/liff/")) return html(liffPage(env));
 
       if (url.pathname === "/admin") {
